@@ -158,9 +158,12 @@
         (stream.thinking && cols >= 70 ? " · thinking with medium effort" : "") + ")" + RESET]);
       var tip = tipFor(stream.t);
       if (tip) wrap(tip, cols - 5, true).forEach(function (l, i) { r.text([(i ? "     " : "  ⎿  ") + DIM + l + RESET]); });
+      // 排队的问题（同 Claude Code）：灰底条，暗色的 ❯；下面一行提示 ctrl+enter 立刻发
       if (queued && asked < TURNS.length) {
         r.text([""]);
-        wrap(TURNS[asked].ask + "  (queued)", cols - 4).forEach(function (l, i) { r.text([DIM + (i ? "  " : "❯ ") + l + RESET]); });
+        var qlines = wrap(TURNS[asked].ask, cols - 2).map(function (l, i) { return pad((i ? "  " : DIM + "❯" + RESET + " ") + l, cols); });
+        r.block('<span class="ask">' + toHtml(qlines) + "</span>");
+        r.text(["  " + DIM + "ctrl+enter to send now" + RESET]);
       }
     }
     r.text([""]);
@@ -299,6 +302,12 @@
     if (follow) toBottom();
     if (queued) { queued = false; setTimeout(ask, 500); }
   }
+  function sendNow() {
+    var follow = nearBottom();
+    stream.el.innerHTML = join(turnRows(stream.t));
+    done();
+    if (follow) toBottom();
+  }
   function showAll() {
     if (stream) return;
     var y = screen.scrollTop;
@@ -337,7 +346,18 @@
       });
     }
     selLayer.innerHTML = blocks.join("");
+    // 制表符的线是背景渐变画的，选中时浏览器只改文字颜色；被选中的线格自己染黑（同选中文字），与蓝底同帧
+    marked.forEach(function (el) { el.classList.remove("sel"); });
+    marked = [];
+    if (blocks.length) {
+      var range = sel.getRangeAt(0), scope = range.commonAncestorContainer;
+      if (scope.nodeType !== 1) scope = scope.parentElement;
+      Array.prototype.forEach.call(scope.querySelectorAll(".ttu-box"), function (el) {
+        if (range.intersectsNode(el)) { el.classList.add("sel"); marked.push(el); }
+      });
+    }
   }
+  var marked = [];
   // 选区一变就当场画：浏览器改选中文字颜色是在同一帧里，蓝底也必须同一帧出来，晚一帧就会撕裂
   document.addEventListener("selectionchange", paintSelection);
 
@@ -382,6 +402,8 @@
 
   // ---- 键盘：打字把问题“打”出来，回车发送；方向键 / 翻页按整行滚（设置窗口里的输入不管）----
   window.addEventListener("keydown", function (e) {
+    // ctrl / ⌘ + 回车：排着的问题立刻发——当前回答直接出完（读者自己选的）
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && stream && queued) { e.preventDefault(); return sendNow(); }
     if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing || (e.target.closest && e.target.closest("#settings"))) return;
     var page = Math.max(1, Math.floor(screen.clientHeight / rowH) - 1);
     var rows = { ArrowDown: 1, ArrowUp: -1, PageDown: page, PageUp: -page, Home: -1e7, End: 1e7 }[e.key];

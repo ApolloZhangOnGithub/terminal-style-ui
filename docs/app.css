@@ -181,3 +181,4 @@ html.refract #menubar::before { backdrop-filter: url(#lg-bar) blur(1px) saturate
     var(--sq-br) bottom right / var(--r) var(--r) no-repeat, var(--sq-bl) bottom left / var(--r) var(--r) no-repeat,
     linear-gradient(#000, #000) center / calc(100% - 2 * var(--r) + 1px) 100% no-repeat, linear-gradient(#000, #000) center / 100% calc(100% - 2 * var(--r) + 1px) no-repeat; }
 html.refract #dock::before { backdrop-filter: url(#lg-dock) blur(1.5px) saturate(1.9) brightness(1.08); }
+#term .ttu-box.sel { filter: brightness(0); } /* 选中的表格线跟选中文字一样变黑 */
