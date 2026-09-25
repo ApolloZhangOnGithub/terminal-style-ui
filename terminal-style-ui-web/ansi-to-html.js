@@ -1,7 +1,7 @@
 // ansi-to-html.js —— ANSI 转义序列 → 格子化 HTML（Terminal-Style-UI-Web 核心模块）
 // 设计要点：
 // 1. 分词解析：正则切出转义序列（CSI / OSC / 其他 ESC）与文字段——不再手工推进下标（旧版 CSI 分支双重自增吞字，见 DEVELOPMENT 坑 8）
-// 2. SGR 状态机：前景色(38;2;RGB)/粗体(1)/dim(2)/斜体(3)/下划线(4) 及其重置(22/23/24/39/0)；
+// 2. SGR 状态机：前景色(38;2;RGB)/背景色(48;2;RGB)/粗体(1)/dim(2)/斜体(3)/下划线(4)/反色(7) 及其重置(22/23/24/27/39/49/0)；
 //    OSC（含 OSC 8 超链接）整段剥离只留文字（与终端一致：不显示 url）
 // 3. 样式段：同样式的连续内容包进一个 <span>；下划线画在该 span 的背景上——整段连续、覆盖段内格子
 //    （text-decoration 画不进 inline-block 格子：中文下划线会一字一断）
@@ -109,27 +109,36 @@ const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, 
 
 export function ansiToHtml(ansi, theme = "dark", options = {}) {
   const widthOf = options.widthOf || charWidth;
-  let color = null, bold = false, dim = false, italic = false, underline = false, strike = false;
+  let color = null, bold = false, dim = false, italic = false, underline = false, strike = false, bg = null, inverse = false;
+  // 反色（SGR 7）要知道默认的前景 / 背景：同 terminal.css 的配色
+  const DEFAULT_FG = theme === "light" ? [26, 26, 26] : [199, 199, 199], DEFAULT_BG = theme === "light" ? [255, 255, 255] : [0, 0, 0];
   let style = "";
   const updateStyle = () => {
     const st = [];
-    if (color) st.push(`color:rgb(${color[0]},${color[1]},${color[2]})`);
+    // 反色：前景 ↔ 背景（没设的用默认色）
+    const fg = inverse ? bg || DEFAULT_BG : color, back = inverse ? color || DEFAULT_FG : bg;
+    if (fg) st.push(`color:rgb(${fg[0]},${fg[1]},${fg[2]})`);
     if (bold) {
       st.push("font-weight:bold");
       // iTerm 的 bold-brighten：暗色终端下 SGR 1 且无显式前景色时提亮纯白（light 下白字不可见，跳过）
-      if (!color && theme !== "light") st.push("color:#ffffff");
+      if (!fg && theme !== "light") st.push("color:#ffffff");
     }
     if (dim) st.push("opacity:0.55");
     if (italic) st.push("font-style:italic");
     const lines = [underline && UNDERLINE_BG, strike && STRIKE_BG].filter(Boolean);
     if (lines.length) st.push(`background:${lines.join(",")}`);
+    if (back) st.push(`background-color:rgb(${back[0]},${back[1]},${back[2]})`); // 背景色（SGR 48 / 反色）：写在 background 简写之后，不被它清掉
     style = st.join(";");
   };
   const applySgr = (params) => {
     const ps = params.split(";").map((x) => parseInt(x || "0", 10));
     for (let k = 0; k < ps.length; k++) {
       const p = ps[k];
-      if (p === 0) { color = null; bold = dim = italic = underline = strike = false; }
+      if (p === 0) { color = bg = null; bold = dim = italic = underline = strike = inverse = false; }
+      else if (p === 7) inverse = true;
+      else if (p === 27) inverse = false;
+      else if (p === 49) bg = null;
+      else if (p === 48 && ps[k + 1] === 2) { bg = [ps[k + 2], ps[k + 3], ps[k + 4]]; k += 4; }
       else if (p === 1) bold = true;
       else if (p === 2) dim = true;
       else if (p === 3) italic = true;
@@ -172,7 +181,7 @@ export function ansiToHtml(ansi, theme = "dark", options = {}) {
   const openLink = () => { if (href) out += `<a href="${escAttr(href)}">`; };
   // options.cache（Map）：按「行首样式状态 + 行内容」缓存每行的 HTML 与行尾状态——编辑时没变的行直接复用
   const cache = options.cache;
-  const stateKey = () => `${color ? color.join(",") : ""}|${+bold}${+dim}${+italic}${+underline}${+strike}|${links ? href ?? "" : ""}`;
+  const stateKey = () => `${color ? color.join(",") : ""}|${bg ? bg.join(",") : ""}|${+bold}${+dim}${+italic}${+underline}${+strike}${+inverse}|${links ? href ?? "" : ""}`;
   ansi.split("\n").forEach((line, i) => {
     // 每行结尾都关掉样式段、下一行再重新打开：每一行的 HTML 自成一体（预览页按行增量替换，不能有跨行的 <span>）
     if (i) out += "\n";
@@ -180,7 +189,7 @@ export function ansiToHtml(ansi, theme = "dark", options = {}) {
     const hit = cache && cache.get(key);
     if (hit) {
       out += hit.html;
-      [color, bold, dim, italic, underline, strike, href] = hit.end;
+      [color, bold, dim, italic, underline, strike, href, bg, inverse] = hit.end;
       updateStyle();
       return;
     }
@@ -206,7 +215,7 @@ export function ansiToHtml(ansi, theme = "dark", options = {}) {
     setRun("");
     if (links && href) out += "</a>";
     if (cache) {
-      cache.set(key, { html: out.slice(start), end: [color, bold, dim, italic, underline, strike, href] });
+      cache.set(key, { html: out.slice(start), end: [color, bold, dim, italic, underline, strike, href, bg, inverse] });
       if (cache.size > (options.cacheMax ?? 20000)) cache.delete(cache.keys().next().value);
     }
   });

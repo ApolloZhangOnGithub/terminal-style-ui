@@ -188,3 +188,10 @@ test("ansiToHtml links：OSC 8 转 <a>，只放行 http(s) / mailto", async () =
   assert.equal((html.match(/<a /g) || []).length, (html.match(/<\/a>/g) || []).length, "<a> 成对闭合");
   assert.ok(!/<a /.test(lib.ansiToHtml(ansi, "dark", { widthOf: visibleWidth })), "默认不生成链接");
 });
+
+test("ansiToHtml：背景色（48;2）与反色（7），重置后恢复", () => {
+  const html = lib.ansiToHtml("\x1b[48;2;10;20;30ma\x1b[49mb \x1b[7mc\x1b[27md", "dark");
+  assert.match(html, /background-color:rgb\(10,20,30\)[^>]*>a</);
+  assert.match(html, /color:rgb\(0,0,0\);background-color:rgb\(199,199,199\)[^>]*>c</, "反色：默认前景当背景、默认背景当前景");
+  assert.ok(!/background-color[^>]*>b</.test(html) && !/background-color[^>]*>d</.test(html), "49 / 27 之后不再带背景");
+});
