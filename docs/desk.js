@@ -17,15 +17,15 @@
   tick();
   setTimeout(function () { tick(); setInterval(tick, 1000); }, 1000 - Date.now() % 1000); // 对齐到整秒
 
-  // ---- 墙纸：太浩湖（白天 / 黄昏航拍，可动）或 The Lake；跟着深浅走 ----
+  // ---- 墙纸：太浩湖（白天 / 夜晚航拍，可动）或 The Lake；跟着深浅走 ----
   var prefs = { wall: localStorage.getItem("tsu-wall") || "tahoe", motion: localStorage.getItem("tsu-motion") !== "off" };
   if (matchMedia("(prefers-reduced-motion: reduce)").matches && !localStorage.getItem("tsu-motion")) prefs.motion = false;
   function applyWall() {
     if (mobile()) return;
     var light = root.classList.contains("light");
-    var still = prefs.wall === "lake" ? (light ? "lake-day.jpg" : "lake-night.jpg") : (light ? "tahoe-day.jpg" : "tahoe-dusk.jpg");
+    var still = prefs.wall === "lake" ? (light ? "lake-day.jpg" : "lake-night.jpg") : (light ? "tahoe-day.jpg" : "tahoe-night.jpg");
     desk.style.backgroundImage = "url(" + still + ")";
-    var video = prefs.wall === "tahoe" && prefs.motion ? (light ? "tahoe-day.mp4" : "tahoe-dusk.mp4") : "";
+    var video = prefs.wall === "tahoe" && prefs.motion ? (light ? "tahoe-day.mp4" : "tahoe-night.mp4") : "";
     if (!video) { wall.classList.remove("on"); wall.pause(); return; }
     if (!wall.src.endsWith(video)) {
       wall.classList.remove("on");

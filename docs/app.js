@@ -18,6 +18,7 @@
   var rgb = function (c) { return ESC + "[38;2;" + c + "m"; };
   var ORANGE = rgb("215;119;87"), GREEN = rgb("78;186;101");
   var chPx = 8, rowH = 17, cols = 0, termW = 0, padL = 0, theme = "", DIM = "", cache = {};
+  var queued = false; // 回答中又按了回车：下一个问题排队，答完自动发出（同 Claude Code 的 queued message）
   var asked = 0, typed = 0, stream = null, spin = 0, spinTimer = 0, typeTimer = 0, statusEl = null;
   var big = {}; // 放大了的图（键：问号-段号）；默认小图（同备忘录），点一下放大到与正文左右对齐，再点缩回
   var settings = { tps: +(localStorage.getItem("tsu-tps") || 80) }; // 模拟的生成速度（token / 秒）：中文约 1.3 字一个 token
@@ -157,6 +158,10 @@
         (stream.thinking && cols >= 70 ? " · thinking with medium effort" : "") + ")" + RESET]);
       var tip = tipFor(stream.t);
       if (tip) wrap(tip, cols - 7, true).forEach(function (l, i) { r.text([(i ? "     " : "  ⎿  ") + DIM + l + RESET]); });
+      if (queued && asked < TURNS.length) {
+        r.text([""]);
+        wrap(TURNS[asked].ask + "  (queued)", cols - 4).forEach(function (l, i) { r.text([DIM + (i ? "  " : "> ") + l + RESET]); });
+      }
     }
     r.text([""]);
     statusEl.innerHTML = join(r.flush().rows);
@@ -164,8 +169,9 @@
   // ---- 输入栏（固定在底部）：上下各一条灰线，上线右侧带会话名（同 Claude Code）----
   function renderInput() {
     var q = asked < TURNS.length ? TURNS[asked].ask : "";
-    var text = stream || !q ? DIM + (q ? "" : "问完了，谢谢你读到这里 ✻") + RESET : "";
-    var left = typed, shown = stream || !q ? [text] : wrap(q, cols - 2).map(function (l) {
+    // 回答中输入栏照样是下一个问题，可以接着打；排队后输入栏清空
+    var text = queued || !q ? DIM + (q ? "" : "问完了，谢谢你读到这里 ✻") + RESET : "";
+    var left = typed, shown = queued || !q ? [text] : wrap(q, cols - 2).map(function (l) {
       var n = Math.max(0, Math.min(l.length, left)); // 打字进度按字数切到各行
       left -= l.length;
       return l.slice(0, n) + DIM + l.slice(n) + RESET;
@@ -258,7 +264,11 @@
     }, step.delay);
   }
   function ask() {
-    if (stream || asked >= TURNS.length) return; // 回答中不打断
+    if (asked >= TURNS.length) return;
+    if (stream) { // 回答中不打断：排进队列，答完再发
+      if (!queued) { queued = true; typed = TURNS[asked].ask.length; renderStatus(); renderInput(); }
+      return;
+    }
     stopTimers();
     var t = asked++;
     typed = 0;
@@ -280,6 +290,7 @@
     renderStatus();
     renderInput();
     if (follow) toBottom();
+    if (queued) { queued = false; setTimeout(ask, 500); }
   }
   function showAll() {
     if (stream) return;
@@ -358,7 +369,7 @@
     if (rows) { e.preventDefault(); return scrollByRows(rows); }
     if (e.key === "Enter") { e.preventDefault(); return ask(); }
     if (e.key === "Escape") { e.preventDefault(); return showAll(); }
-    if (stream || asked >= TURNS.length) return;
+    if (queued || asked >= TURNS.length) return;
     if (e.key === "Backspace" || e.key.length === 1) {
       e.preventDefault();
       clearTimeout(typeTimer);

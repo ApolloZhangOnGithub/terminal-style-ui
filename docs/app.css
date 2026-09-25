@@ -15,7 +15,7 @@ body { overflow: hidden; background: #1a1446; font: 13px -apple-system, "PingFan
     linear-gradient(#000, #000) center / calc(100% - 2 * var(--r) + 1px) 100% no-repeat, linear-gradient(#000, #000) center / 100% calc(100% - 2 * var(--r) + 1px) no-repeat;
 }
 
-/* ---- 桌面墙纸：太浩湖（航拍：白天 / 黄昏，可动）或 The Lake（白天 / 夜晚两帧）；desk.js 按设置与深浅切换 ---- */
+/* ---- 桌面墙纸：太浩湖（航拍：白天 / 夜晚，可动）或 The Lake（白天 / 夜晚两帧）；desk.js 按设置与深浅切换 ---- */
 #desktop { position: fixed; inset: 0; background: #1a1446 center / cover; }
 #wall { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.6s; }
 #wall.on { opacity: 1; }
