@@ -338,8 +338,8 @@
     }
     selLayer.innerHTML = blocks.join("");
   }
-  var selTimer = 0;
-  document.addEventListener("selectionchange", function () { clearTimeout(selTimer); selTimer = setTimeout(paintSelection, 16); });
+  // 选区一变就当场画：浏览器改选中文字颜色是在同一帧里，蓝底也必须同一帧出来，晚一帧就会撕裂
+  document.addEventListener("selectionchange", paintSelection);
 
   // ---- 滚动：整行走；往回翻时顶上留一个空行、底下出现 Jump to bottom ----
   var maxY = function () { return screen.scrollHeight - screen.clientHeight; };
