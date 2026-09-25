@@ -37,3 +37,7 @@ light = MONOKAI 同色相按白底加深（highlight-themes.js 的 LIGHT_PALETTE
 - **Quick Look App** 为通用二进制（Apple Silicon + Intel），但用开发者证书签名、未经 Apple 公证：别人第一次打开会被 Gatekeeper 拦，需要右键 →「打开」。免提示要 Developer ID 证书 + 公证。
 - **npm 包**只发在 GitHub Packages：安装公开包也要先 `npm login --registry=https://npm.pkg.github.com`；也可以直接装 Release 里的 .tgz。
 - **定制版 pi-tui**：`vendor/` 里是打包好的产物（附许可声明），源码不在本仓库——改渲染逻辑（本库代码）不需要它，改上游行为需要。
+
+## 8. 文件类型判断
+
+规则打分（后缀 / 文件名 / `#!` / 编辑器模式行 / JSON 可解析 / 各语言内容特征），零点几毫秒。评估过 Google 的 Magika（深度学习，准确度高）：纯 JavaScript 版每个文件 11–44 秒，TensorFlow 原生版依赖 635 MB 且与新版 Node 不兼容，不适合预览场景，未采用。
