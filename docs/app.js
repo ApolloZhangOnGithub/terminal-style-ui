@@ -3,7 +3,7 @@
 // 交互同 Claude Code 全屏模式：对话区滚动，输入栏固定在底部。输入栏里是读者的下一个问题（灰字），打字把它“打”出来，回车发送 →
 // 对话末尾出现状态行（· Nesting… (29s · ↓ 846 tokens) 与 ⎿ Tip），回答按源码一行行流出来（同 teyvat 的 line-by-line），
 // 答完状态行换成 ✻ Worked for …。回答中不能打断（回车、Esc 都不跳过）；空闲时 Esc = 全文。手机上轻点输入栏提问。
-// 滚轮 / 触控板 / 键盘按整行滚动（图片上照常顺滑滚），往回翻时顶上留一个空行、底下出现 Jump to bottom；选区自己画（同 VSCode 预览）
+// 滚轮 / 触控板 / 键盘按整行滚动（图片卡在屏幕边上时按像素顺滑滚过去），往回翻时顶上留一个空行、底下出现 Jump to bottom；选区自己画（同 VSCode 预览）
 (function () {
   "use strict";
   var TURNS = JSON.parse(document.getElementById("turns").textContent);
@@ -125,7 +125,7 @@
     var turn = TURNS[t], key = t + "|" + cols + "|" + theme + "|" + JSON.stringify(big) + "|" + (turn.worked || "");
     if (!upto && cache[key]) return cache[key];
     var r = new Rows().text([""]);
-    var ask = wrap(turn.ask, cols - 2).map(function (l, i) { return pad((i ? "  " : "> ") + l, cols); });
+    var ask = wrap(turn.ask, cols - 2).map(function (l, i) { return pad((i ? "  " : "❯ ") + l, cols); });
     r.block('<span class="ask">' + toHtml(ask) + "</span>");
     turn.parts.forEach(function (p, i) {
       if (upto && i > upto.part) return;
@@ -160,7 +160,7 @@
       if (tip) wrap(tip, cols - 7, true).forEach(function (l, i) { r.text([(i ? "     " : "  ⎿  ") + DIM + l + RESET]); });
       if (queued && asked < TURNS.length) {
         r.text([""]);
-        wrap(TURNS[asked].ask + "  (queued)", cols - 4).forEach(function (l, i) { r.text([DIM + (i ? "  " : "> ") + l + RESET]); });
+        wrap(TURNS[asked].ask + "  (queued)", cols - 4).forEach(function (l, i) { r.text([DIM + (i ? "  " : "❯ ") + l + RESET]); });
       }
     }
     r.text([""]);
@@ -176,8 +176,10 @@
       left -= l.length;
       return l.slice(0, n) + DIM + l.slice(n) + RESET;
     });
-    var label = " terminal-style-ui · blog ", top = DIM + "─".repeat(Math.max(2, cols - W(label) - 2)) + label + "──" + RESET;
-    var rows = new Rows().text([top].concat(shown.map(function (l, i) { return (i ? "  " : "> ") + l; }), [DIM + "─".repeat(cols) + RESET])).flush().rows;
+    // 输入栏的两条横线撑满窗口左右（#foot 不留边，列数按整个窗口宽算）；❯ 那一行与对话正文同列缩进
+    var fcols = Math.max(24, Math.floor(foot.clientWidth / chPx)), indent = " ".repeat(Math.round(padL / chPx));
+    var label = " terminal-style-ui · blog ", top = DIM + "─".repeat(Math.max(2, fcols - W(label) - 2)) + label + "──" + RESET;
+    var rows = new Rows().text([top].concat(shown.map(function (l, i) { return indent + (i ? "  " : "❯ ") + l; }), [DIM + "─".repeat(fcols) + RESET])).flush().rows;
     input.innerHTML = join(rows);
   }
 
@@ -346,13 +348,25 @@
   }
   screen.addEventListener("scroll", onScroll, { passive: true });
   jump.addEventListener("click", function () { toBottom(); onScroll(); });
+  function crossingImage(px) {
+    var box = screen.getBoundingClientRect(), edge = px > 0 ? box.top : box.bottom;
+    return Array.prototype.some.call(term.querySelectorAll(".fig"), function (f) {
+      var r = f.getBoundingClientRect();
+      return r.top < edge - 1 && r.bottom > edge + 1;
+    });
+  }
   var wheelAcc = 0;
   screen.addEventListener("wheel", function (e) {
     if (e.ctrlKey || e.metaKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // 缩放、横向交给浏览器
-    // 指针在图片上：原生滚动，顺滑无阻尼（图片不是文字行，不必按行走）；回到文字上的第一格会重新吸附到行格
-    if (e.target.closest && e.target.closest(".fig")) { wheelAcc = 0; return; }
     e.preventDefault();
     var px = e.deltaMode === 1 ? e.deltaY * rowH : e.deltaMode === 2 ? e.deltaY * screen.clientHeight : e.deltaY;
+    // 按像素顺滑滚（图片不是文字行）的两种情况：指针在图片上；或有图片正卡在屏幕边上、这一下会把它继续推过那条边
+    // （往下滚看上边、往上滚看下边）。其余时候按整行走；图片滚过去之后，下一格会重新吸附到行格
+    if ((e.target.closest && e.target.closest(".fig")) || crossingImage(px)) {
+      wheelAcc = 0;
+      screen.scrollTop = Math.max(0, Math.min(maxY(), screen.scrollTop + px));
+      return;
+    }
     if (Math.sign(px) !== Math.sign(wheelAcc)) wheelAcc = 0; // 反向立即响应
     wheelAcc += px;
     var rows = Math.trunc(wheelAcc / rowH);

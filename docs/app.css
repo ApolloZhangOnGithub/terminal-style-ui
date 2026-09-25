@@ -103,7 +103,7 @@ html.light .bar { background: #ececec; border-bottom-color: #d4d4d4; color: #666
 #term, #foot { --ttu-font-size: 14px; margin: 0; padding: 0 2ch; overflow: visible; background: transparent; position: relative; z-index: 0; }
 #term a, #foot a { color: inherit; text-decoration: none; }
 #term a:hover, #foot a:hover { background: rgba(127, 127, 127, 0.22); }
-#foot { flex: none; cursor: text; padding-bottom: 8px; }
+#foot { flex: none; cursor: text; padding: 0 0 8px !important; } /* 输入栏的横线顶到窗口两边 */
 /* 块：每轮问答、图片、用户的话——高度都是整行，整屏仍是一张行格 */
 #term .blk, #term .fig, #term .ask { display: block; }
 #term .fig { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
