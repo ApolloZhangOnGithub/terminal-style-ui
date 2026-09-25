@@ -31,9 +31,11 @@
   <div class="pane">
     <section><h3>外观</h3><div class="seg" data-set="theme"><button data-v="auto">自动</button><button data-v="light">浅色</button><button data-v="dark">深色</button></div></section>
     <section><h3>墙纸</h3><div class="walls" data-set="wall">
-      <button data-v="tahoe"><img class="sq" src="tahoe-day.jpg" alt=""><span>太浩湖</span></button>
-      <button data-v="lake"><img class="sq" src="lake-day.jpg" alt=""><span>The Lake</span></button>
-    </div><label class="row"><input type="checkbox" data-set="motion"> 动态墙纸（太浩湖航拍）</label></section>
+      <button data-v="tahoe-day"><img class="sq" src="tahoe-day.jpg" alt=""><span>太浩湖白天</span></button>
+      <button data-v="tahoe-night"><img class="sq" src="tahoe-night.jpg" alt=""><span>太浩湖夜晚</span></button>
+      <button data-v="lake-day"><img class="sq" src="lake-day.jpg" alt=""><span>The Lake 白天</span></button>
+      <button data-v="lake-night"><img class="sq" src="lake-night.jpg" alt=""><span>The Lake 夜晚</span></button>
+    </div><label class="row"><input type="checkbox" data-set="motion"> 动态墙纸（太浩湖是航拍视频）</label></section>
     <section><h3>文字大小</h3><div class="row"><input type="range" min="11" max="18" step="1" data-set="font"><output data-out="font"></output></div></section>
     <section><h3>生成速度</h3><div class="row"><input type="range" min="20" max="240" step="10" data-set="tps"><output data-out="tps"></output></div>
       <p class="note">模拟 Claude 回答时每秒输出的 token 数。</p></section>

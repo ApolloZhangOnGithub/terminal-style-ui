@@ -17,15 +17,15 @@
   tick();
   setTimeout(function () { tick(); setInterval(tick, 1000); }, 1000 - Date.now() % 1000); // 对齐到整秒
 
-  // ---- 墙纸：太浩湖（白天 / 夜晚航拍，可动）或 The Lake；跟着深浅走 ----
-  var prefs = { wall: localStorage.getItem("tsu-wall") || "tahoe", motion: localStorage.getItem("tsu-motion") !== "off" };
+  // ---- 墙纸：太浩湖白天 / 夜晚（航拍，可动）、The Lake 白天 / 夜晚；是单独的选择，不跟深浅外观走（同 macOS）----
+  var WALLS = { "tahoe-day": 1, "tahoe-night": 1, "lake-day": 0, "lake-night": 0 }; // 值：有没有动态版
+  var prefs = { wall: WALLS[localStorage.getItem("tsu-wall")] !== undefined ? localStorage.getItem("tsu-wall") : "tahoe-day", motion: localStorage.getItem("tsu-motion") !== "off" };
   if (matchMedia("(prefers-reduced-motion: reduce)").matches && !localStorage.getItem("tsu-motion")) prefs.motion = false;
   function applyWall() {
     if (mobile()) return;
-    var light = root.classList.contains("light");
-    var still = prefs.wall === "lake" ? (light ? "lake-day.jpg" : "lake-night.jpg") : (light ? "tahoe-day.jpg" : "tahoe-night.jpg");
+    var still = prefs.wall + ".jpg";
     desk.style.backgroundImage = "url(" + still + ")";
-    var video = prefs.wall === "tahoe" && prefs.motion ? (light ? "tahoe-day.mp4" : "tahoe-night.mp4") : "";
+    var video = WALLS[prefs.wall] && prefs.motion ? prefs.wall + ".mp4" : "";
     if (!video) { wall.classList.remove("on"); wall.pause(); return; }
     if (!wall.src.endsWith(video)) {
       wall.classList.remove("on");
@@ -36,7 +36,6 @@
     wall.play().catch(function () {});
   }
   applyWall();
-  document.addEventListener("tsu-theme", applyWall);
 
   // ---- 窗口 ----
   var area = function () {
@@ -233,7 +232,7 @@
     pane.querySelectorAll('[data-set="theme"] button').forEach(function (b) { b.classList.toggle("on", b.dataset.v === mode); });
     pane.querySelectorAll('[data-set="wall"] button').forEach(function (b) { b.classList.toggle("on", b.dataset.v === prefs.wall); });
     pane.querySelector('[data-set="motion"]').checked = prefs.motion;
-    pane.querySelector('[data-set="motion"]').disabled = prefs.wall !== "tahoe";
+    pane.querySelector('[data-set="motion"]').disabled = !WALLS[prefs.wall];
     var font = localStorage.getItem("tsu-font") || 14, tps = window.TSU_APP ? window.TSU_APP.tps : 80;
     pane.querySelector('[data-set="font"]').value = font;
     pane.querySelector('[data-out="font"]').textContent = font + " px";
