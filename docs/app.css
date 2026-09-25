@@ -182,3 +182,6 @@ html.refract #menubar::before { backdrop-filter: url(#lg-bar) blur(1px) saturate
     linear-gradient(#000, #000) center / calc(100% - 2 * var(--r) + 1px) 100% no-repeat, linear-gradient(#000, #000) center / 100% calc(100% - 2 * var(--r) + 1px) no-repeat; }
 html.refract #dock::before { backdrop-filter: url(#lg-dock) blur(1.5px) saturate(1.9) brightness(1.08); }
 #term .ttu-box.sel { filter: brightness(0); } /* 选中的表格线跟选中文字一样变黑 */
+/* 对话区最底下一行始终留空（Jump to bottom 就浮在这一行上），与输入栏隔开 */
+#botgap { position: sticky; bottom: 0; z-index: 3; background: #000; }
+#win.tl #botgap { background: #fff; }

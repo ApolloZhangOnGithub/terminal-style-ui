@@ -9,7 +9,7 @@
   var TURNS = JSON.parse(document.getElementById("turns").textContent);
   var $ = function (id) { return document.getElementById(id); };
   var root = document.documentElement, screen = $("screen"), term = $("term"), foot = $("foot"), out = $("out"), input = $("input");
-  var selLayer = $("sel"), toggle = $("toggle"), jump = $("jump"), topgap = $("topgap"), win = $("win");
+  var selLayer = $("sel"), toggle = $("toggle"), jump = $("jump"), topgap = $("topgap"), botgap = $("botgap"), win = $("win");
   // 两层外观（同 macOS）：系统（html.light，设置 App 管）与终端自己的（标题栏右侧按钮：跟随系统 / 浅色 / 深色）
   var termPref = function () { return localStorage.getItem("tsu-term") || "auto"; };
   var termLight = function () { var p = termPref(); return p === "auto" ? root.classList.contains("light") : p === "light"; };
@@ -53,6 +53,8 @@
     rowH = parseFloat(style.lineHeight);
     topgap.style.height = rowH + "px";
     topgap.style.marginBottom = -rowH + "px";
+    botgap.style.height = rowH + "px";
+    botgap.style.marginTop = -rowH + "px";
     return Math.max(24, Math.floor((term.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)) / chPx));
   }
   var W = function (s) { return TTU.visibleWidth(s); };
