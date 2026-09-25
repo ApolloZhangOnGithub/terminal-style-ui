@@ -1,6 +1,8 @@
 # Terminal-Style-UI-Web
 
-**版本 0.1.0** · MIT · 属于 [terminal-style-ui](../README.md)
+[![Release](https://img.shields.io/github/v/release/ApolloZhangOnGithub/terminal-style-ui?label=release&color=5fd068)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases/latest) [![License: MIT](https://img.shields.io/github/license/ApolloZhangOnGithub/terminal-style-ui?color=blue)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/blob/main/LICENSE) [![GitHub Packages](https://img.shields.io/badge/npm-@apollozhangongithub%2Fterminal--style--ui-cb3837?logo=npm)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/pkgs/npm/terminal-style-ui) ![Node](https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white) [![Publish package](https://github.com/ApolloZhangOnGithub/terminal-style-ui/actions/workflows/publish-package.yml/badge.svg)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/actions/workflows/publish-package.yml)
+
+属于 [terminal-style-ui](https://github.com/ApolloZhangOnGithub/terminal-style-ui)（版本 0.1.1）。
 
 **把终端 TUI 的渲染管线搬到网页上**——与 iTerm/TUI 视觉一致的 Markdown 渲染库。
 
@@ -16,15 +18,17 @@
 Markdown：
 
 <p>
-<img src="../media/lib-demo-md-dark.png" width="49%" alt="Markdown dark">
-<img src="../media/lib-demo-md-light.png" width="49%" alt="Markdown light">
+<img src="https://raw.githubusercontent.com/ApolloZhangOnGithub/terminal-style-ui/main/media/lib-demo-md-dark.png" width="49%" alt="Markdown dark">
+<img src="https://raw.githubusercontent.com/ApolloZhangOnGithub/terminal-style-ui/main/media/lib-demo-md-light.png" width="49%" alt="Markdown light">
 </p>
+
 任意文件（代码按内容判断语言，灰色行号、不画竖线）：
 
 <p>
-<img src="../media/lib-demo-py-dark.png" width="49%" alt="代码 dark">
-<img src="../media/lib-demo-py-light.png" width="49%" alt="代码 light">
+<img src="https://raw.githubusercontent.com/ApolloZhangOnGithub/terminal-style-ui/main/media/lib-demo-py-dark.png" width="49%" alt="代码 dark">
+<img src="https://raw.githubusercontent.com/ApolloZhangOnGithub/terminal-style-ui/main/media/lib-demo-py-light.png" width="49%" alt="代码 light">
 </p>
+
 ## 快速开始
 
 ```js
@@ -52,8 +56,8 @@ const { ansi, html } = await renderTerminalHtml(
 ## 命令行：tmd（terminal markdown）
 
 <p>
-<img src="../media/tmd-dark.png" width="49%" alt="tmd dark">
-<img src="../media/tmd-light.png" width="49%" alt="tmd light">
+<img src="https://raw.githubusercontent.com/ApolloZhangOnGithub/terminal-style-ui/main/media/tmd-dark.png" width="49%" alt="tmd dark">
+<img src="https://raw.githubusercontent.com/ApolloZhangOnGithub/terminal-style-ui/main/media/tmd-light.png" width="49%" alt="tmd light">
 </p>
 
 终端里直接看 Markdown（任意后缀），与 TUI / VSCode 预览同一条渲染管线；终端自己画制表符、排中文，链接可点（OSC 8）。
@@ -122,5 +126,5 @@ tmd --color always x.md > x.ans   # 被管道接走时默认不带颜色，alway
 
 ## 文档
 
-- [DEVELOPMENT.md](./DEVELOPMENT.md) —— 开发过程全记录（方案演进、技术决策、踩坑）
-- [LIMITATIONS.md](./LIMITATIONS.md) —— 已知局限与边界
+- [DEVELOPMENT.md](https://github.com/ApolloZhangOnGithub/terminal-style-ui/blob/main/terminal-style-ui-web/DEVELOPMENT.md) —— 开发过程全记录（方案演进、技术决策、踩坑）
+- [LIMITATIONS.md](https://github.com/ApolloZhangOnGithub/terminal-style-ui/blob/main/terminal-style-ui-web/LIMITATIONS.md) —— 已知局限与边界

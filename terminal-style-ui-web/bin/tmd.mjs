@@ -15,7 +15,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadTerminalKit, renderFileAnsi } from "../index.js";
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
 const HELP = `tmd ${VERSION}（terminal markdown）—— 用终端 TUI 同款渲染管线在终端里显示 Markdown（任意后缀）
 
 用法：tmd                       进入交互界面（全屏，同 Claude Code）：下方输入框，

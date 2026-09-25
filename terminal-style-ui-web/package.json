@@ -1,6 +1,6 @@
 {
   "name": "@apollozhangongithub/terminal-style-ui",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "终端风格渲染：Markdown / 任意文件 → 终端 TUI 同款 ANSI → 格子化 HTML；附命令行 tmd",
   "main": "index.js",

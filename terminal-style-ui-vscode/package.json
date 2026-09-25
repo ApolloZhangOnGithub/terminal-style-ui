@@ -2,7 +2,7 @@
   "name": "terminal-style-ui-vscode",
   "displayName": "Terminal Style UI",
   "description": "终端 TUI 风格的 Markdown / 任意文件预览：表格制表符严丝合缝、中英文对齐、Claude Code 同款代码行号，dark / light，导出 HTML / PDF",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/ApolloZhangOnGithub/terminal-style-ui.git",
