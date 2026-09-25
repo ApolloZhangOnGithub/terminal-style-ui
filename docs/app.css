@@ -54,7 +54,7 @@ html.light #dock .app.running::after { background: rgba(0, 0, 0, 0.6); }
 .win { --r: 26px; position: absolute; min-width: 360px; min-height: 240px; border-radius: 18px; transform-origin: 50% 100%;
   box-shadow: 0 22px 70px rgba(0, 0, 0, 0.55); }
 html.light .win { box-shadow: 0 22px 70px rgba(30, 40, 90, 0.35); }
-.win > .body { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; background: #000; }
+.win > .body { position: absolute; left: 0; top: 0; width: 100%; height: 100%; /* 不用 inset:0：Safari 有时把它当作高度不定，flex 子项就不撑满 */ display: flex; flex-direction: column; overflow: hidden; background: #000; }
 html.light #win > .body { background: #fff; }
 .win.anim { transition: left 0.28s, top 0.28s, width 0.28s, height 0.28s, transform 0.35s, opacity 0.35s; }
 .win.min { transform: translateY(40vh) scale(0.05); opacity: 0; pointer-events: none; }
@@ -86,7 +86,7 @@ html.light .bar { background: #ececec; border-bottom-color: #d4d4d4; color: #666
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 2h5L2 7z M10 10H5l5-5z'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 2h5L2 7z M10 10H5l5-5z'/%3E%3C/svg%3E") center / contain no-repeat; }
 
 /* ---- 终端窗口：同 Claude Code 全屏模式——对话在屏幕里滚动（不显示滚动条、滚到头不回弹），输入栏固定在底部 ---- */
-#screen { flex: 1; overflow-y: auto; scrollbar-width: none; overscroll-behavior: none; position: relative; }
+#screen { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none; overscroll-behavior: none; position: relative; }
 #screen::-webkit-scrollbar { display: none; }
 /* 往回翻时顶上空一行 */
 #topgap { position: sticky; top: 0; z-index: 3; visibility: hidden; background: #000; }

@@ -19,17 +19,20 @@
   var big = {}; // 放大了的图（键：问号-段号）；默认小图（同备忘录），点一下放大到与正文左右对齐，再点缩回
   var settings = { tps: +(localStorage.getItem("tsu-tps") || 80) }; // 模拟的生成速度（token / 秒）：中文约 1.3 字一个 token
   var VERBS = ["Garnishing", "Pondering", "Crafting", "Brewing", "Noodling", "Percolating", "Simmering", "Conjuring", "Mulling", "Nesting", "Zigzagging", "Tinkering"];
-  var TIPS = [
-    "Tip: Press Enter to ask the next question. On a touch screen, tap the input bar instead.",
-    "Tip: Click an image to enlarge it to the full text width; click again to shrink it back.",
-    "Tip: Everything here is laid out live by terminal-style-ui. Resize the window and it reflows to the new column count.",
-    "Tip: Drag the title bar to move the window. The green light goes full screen, the yellow one tucks it into the Dock.",
-    "Tip: Open Settings in the Dock to change the wallpaper, text size and generation speed.",
-    "Tip: Select some text: the highlight snaps to the character grid, just like iTerm.",
-    "Tip: While Claude is idle, press Esc to read the whole post at once.",
-    "Tip: Scroll back through history any time; Jump to bottom brings you back.",
-    "Tip: The source of this post is plain Markdown: docs/blog.md in the repo.",
-  ];
+  // Tip 只在合适的时候出：第一问教怎么提问，第一次出图时教点图放大，隔几问再提窗口、设置、重排；其余时候不出
+  var TIPS = {
+    0: "Tip: Press Enter to ask the next question. On a touch screen, tap the input bar instead.",
+    3: "Tip: Drag the title bar to move the window, or drag any edge to resize it. The green light goes full screen.",
+    5: "Tip: Open Settings in the Dock to change the wallpaper, text size and generation speed.",
+    7: "Tip: Everything here is laid out live by terminal-style-ui. Resize the window and it reflows to the new column count.",
+  };
+  var IMAGE_TIP = "Tip: Click an image to enlarge it; click again to shrink it back.", imageTipAt = -1;
+  function tipFor(t) {
+    if (TIPS[t]) return TIPS[t];
+    var hasImage = TURNS[t].parts.some(function (p) { return p.img; });
+    if (hasImage && (imageTipAt < 0 || imageTipAt === t) && t > 0) { imageTipAt = t; return IMAGE_TIP; }
+    return null;
+  }
 
   // ---- 排版 ----
   function measure() {
@@ -149,7 +152,8 @@
       var secs = Math.floor((Date.now() - stream.t0) / 1000), tok = stream.tokens < 1000 ? stream.tokens : (stream.tokens / 1000).toFixed(1) + "k";
       r.text(["", ORANGE + SPIN[spin % SPIN.length] + " " + stream.verb + "…" + RESET + DIM + " (" + secs + "s · ↓ " + tok + " tokens" +
         (stream.thinking && cols >= 70 ? " · thinking with medium effort" : "") + ")" + RESET]);
-      wrap(TIPS[stream.t % TIPS.length], cols - 7, true).forEach(function (l, i) { r.text([(i ? "     " : "  ⎿  ") + DIM + l + RESET]); });
+      var tip = tipFor(stream.t);
+      if (tip) wrap(tip, cols - 7, true).forEach(function (l, i) { r.text([(i ? "     " : "  ⎿  ") + DIM + l + RESET]); });
     }
     r.text([""]);
     statusEl.innerHTML = join(r.flush().rows);
