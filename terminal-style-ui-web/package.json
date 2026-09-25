@@ -10,7 +10,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "vendor": "node scripts/vendor.mjs",
-    "test": "node --test test/",
+    "test": "node --test test/*.test.mjs",
     "prepack": "node scripts/build.mjs"
   },
   "license": "MIT",

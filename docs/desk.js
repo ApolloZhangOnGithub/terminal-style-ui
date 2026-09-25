@@ -179,6 +179,7 @@
   };
   Win.prototype.show = function () {
     var el = this.el, dockApp = dock.querySelector('[data-app="' + el.id + '"]');
+    el.querySelectorAll("img[data-src]").forEach(function (img) { img.src = img.dataset.src; img.removeAttribute("data-src"); }); // 缩略图打开时才取
     if (this.state === "closed") this.place(this.initial());
     void el.offsetWidth;
     el.classList.add("anim");

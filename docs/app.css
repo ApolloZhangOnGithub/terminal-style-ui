@@ -185,3 +185,7 @@ html.refract #dock::before { backdrop-filter: url(#lg-dock) blur(1.5px) saturate
 /* 对话区最底下一行始终留空（Jump to bottom 就浮在这一行上），与输入栏隔开 */
 #botgap { position: sticky; bottom: 0; z-index: 3; background: #000; }
 #win.tl #botgap { background: #fff; }
+/* 语义化全文：视觉隐藏，读屏器与搜索引擎读它 */
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+#readall { position: relative; border: 0; background: none; color: inherit; font-size: 15px; cursor: pointer; padding: 2px 6px; margin-left: auto; }
+#readall + #toggle { margin-left: 0; }

@@ -62,11 +62,23 @@
   var toHtml = function (lines) { return TTU.ansiToHtml(lines.join("\n"), theme, { widthOf: TTU.visibleWidth, links: true }); };
   var escHtml = function (s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;"); };
   // 按显示宽度折行；words = true 时尽量在空格处断（英文）
+  // 按显示宽度折行；words = true 时尽量在空格处断（英文）。简单避头尾：句读标点不落到行首、「——」不拆开——
+  // 碰到时把上一行最后一个字一起带到下一行
+  var NO_START = /^[，。、；：！？）」』”’》〉…—,.;:!?)\]]/;
   function wrap(s, w, words) {
     var lines = [], cur = "", cw = 0;
     (words ? s.split(/(?<= )/) : Array.from(s)).forEach(function (tok) {
       var x = W(tok);
-      if (cw + x > w && cur) { lines.push(cur.replace(/ +$/, "")); cur = ""; cw = 0; }
+      if (cw + x > w && cur) {
+        var carry = "";
+        if (!words && NO_START.test(tok) && Array.from(cur).length > 1) { var cs = Array.from(cur); carry = cs.pop(); cur = cs.join(""); }
+        // 英文单词不从中间断：把行尾那半个词整个带到下一行
+        var tail = !words && /^[A-Za-z0-9]/.test(tok) && /[A-Za-z0-9._/-]+$/.exec(cur);
+        if (tail && tail[0].length < cur.length && W(tail[0]) < w / 2) { carry = tail[0]; cur = cur.slice(0, -tail[0].length); }
+        lines.push(cur.replace(/ +$/, ""));
+        cur = carry;
+        cw = W(carry);
+      }
       cur += tok;
       cw += x;
     });
@@ -108,11 +120,15 @@
   function banner() {
     var w = Math.min(cols, 76);
     var body = [ORANGE + "✻" + RESET + " " + BOLD + "Welcome to terminal-style-ui" + RESET, ""];
-    ["这是一段 Claude Code 会话：你来提问，Claude 讲它和一位用户怎样用一天做出了这个项目。",
-     "整页由这个项目自己渲染，在你的浏览器里现场排版——窗口多宽，就排多少列。"].forEach(function (p) {
+    ["这是一段 Claude Code 会话的样子：按回车提问，Claude 讲它和一位用户怎样用一天做出了这个项目。",
+     "问题和回答都是预先写好的，不是实时的 AI；这也不是 Anthropic 官方页面。",
+     "整页由这个项目自己渲染，在你的浏览器里现场排版——窗口多宽，就排多少列。",
+     "想直接看全文：按 Esc，或点标题栏右上角的 ≡。"].forEach(function (p) {
       wrap(p, w - 4).forEach(function (l) { body.push(DIM + l + RESET); });
     });
-    body.push("", DIM + "\x1b]8;;https://github.com/ApolloZhangOnGithub/terminal-style-ui\x07github.com/ApolloZhangOnGithub/terminal-style-ui\x1b]8;;\x07" + RESET);
+    body.push("");
+    var url = "https://github.com/ApolloZhangOnGithub/terminal-style-ui";
+    wrap(url.replace("https://", ""), w - 4).forEach(function (l) { body.push(DIM + "\x1b]8;;" + url + "\x07" + l + "\x1b]8;;\x07" + RESET); });
     return new Rows().text(box(body, w, ORANGE)).flush().rows;
   }
   // ⏺ 开头、其余行缩进 2 格（同 Claude Code 的回答）
@@ -478,6 +494,7 @@
   var setTheme = function (light) { root.classList.toggle("light", light); renderAll(); document.dispatchEvent(new Event("tsu-theme")); };
   // 终端外观按钮：隔一会儿再点 = 在浅色 / 深色之间翻（把现在看到的反过来）；连续快点才一路切到「跟随系统」
   var lastToggle = 0;
+  $("readall").addEventListener("click", function () { showAll(); });
   toggle.addEventListener("click", function () {
     var now = Date.now(), rapid = now - lastToggle < 1200;
     lastToggle = now;
