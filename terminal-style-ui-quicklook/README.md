@@ -1,6 +1,6 @@
 # Terminal Style UI —— Mac 快速查看（Quick Look）
 
-[![Release](https://img.shields.io/github/v/release/ApolloZhangOnGithub/terminal-style-ui?label=release&color=5fd068)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases/latest) [![License: MIT](https://img.shields.io/github/license/ApolloZhangOnGithub/terminal-style-ui?color=blue)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/blob/main/LICENSE) ![macOS](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white) [![Downloads](https://img.shields.io/github/downloads/ApolloZhangOnGithub/terminal-style-ui/total?color=orange)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases)
+[![Release](https://img.shields.io/github/v/release/ApolloZhangOnGithub/terminal-style-ui?label=release&color=5fd068)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/blob/main/LICENSE) ![macOS](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white) [![Downloads](https://img.shields.io/github/downloads/ApolloZhangOnGithub/terminal-style-ui/total?color=orange)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases)
 
 属于 [terminal-style-ui](https://github.com/ApolloZhangOnGithub/terminal-style-ui)（版本 0.1.1）。
 
