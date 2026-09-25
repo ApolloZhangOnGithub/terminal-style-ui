@@ -280,7 +280,7 @@
     selLayer.innerHTML = blocks.join("");
   }
   var selFrame = 0;
-  document.addEventListener("selectionchange", function () { cancelAnimationFrame(selFrame); selFrame = requestAnimationFrame(paintSelection); });
+  document.addEventListener("selectionchange", function () { clearTimeout(selFrame); selFrame = setTimeout(paintSelection, 16); });
 
   // ---- 整行滚动：滚动量攒满一行才走一行，停下时总落在行格上（同终端） ----
   var maxY = function () { return screen.scrollHeight - screen.clientHeight; };
