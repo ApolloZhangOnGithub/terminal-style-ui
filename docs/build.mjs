@@ -60,15 +60,24 @@ const page = `<!DOCTYPE html>
 </script>
 </head>
 <body>
-<div class="win">
-  <div class="bar"><i></i><i></i><i></i><span>claude — terminal-style-ui</span><button id="toggle" title="切换深色 / 浅色">☾</button></div>
+<div id="desktop">
+<div id="menubar"><span class="apple"></span><b>终端</b><span>Shell</span><span>编辑</span><span>显示</span><span>窗口</span><span>帮助</span><span class="sp"></span><span id="clock"></span></div>
+<div class="win" id="win">
+  <div class="bar" id="bar"><i data-act="close" title="关闭"></i><i data-act="min" title="最小化"></i><i data-act="full" title="全屏"></i><span>claude — terminal-style-ui</span><button id="toggle" title="切换深色 / 浅色">☾</button></div>
   <div id="screen"><div id="page"><div id="sel"></div><pre id="term" class="terminal-style-ui"><span id="out"></span></pre></div></div>
   <pre id="foot" class="terminal-style-ui"><span id="input"></span></pre>
+</div>
+<div id="dock">
+  <a class="app running" id="dock-term" title="终端"><span class="ico ico-term">&gt;_</span></a>
+  <a class="app" href="https://github.com/ApolloZhangOnGithub/terminal-style-ui" target="_blank" rel="noopener" title="terminal-style-ui（GitHub）"><span class="ico ico-folder"></span></a>
+  <a class="app" href="https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases" target="_blank" rel="noopener" title="下载（Releases）"><span class="ico ico-box">↓</span></a>
+</div>
 </div>
 <noscript><p class="noscript">这个页面在浏览器里现场排版，需要 JavaScript。原文见 <a href="https://github.com/ApolloZhangOnGithub/terminal-style-ui/blob/main/docs/blog.md">docs/blog.md</a>。</p></noscript>
 <script id="turns" type="application/json">${JSON.stringify(turns).replace(/</g, "\\u003c")}</script>
 <script src="ttu-core.js"></script>
 <script src="app.js"></script>
+<script src="desk.js"></script>
 </body>
 </html>
 `;

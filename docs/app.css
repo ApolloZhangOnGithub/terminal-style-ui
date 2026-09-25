@@ -1,27 +1,51 @@
 /* app.css —— 博客页：桌面 + 一个终端窗口（Claude Code 会话），窗口里的排版见 terminal.css */
 :root { color-scheme: dark light; }
 html, body { margin: 0; height: 100%; }
-/* 桌面：蓝紫的湖（渐变，不用系统壁纸原图） */
-body {
-  display: flex; align-items: center; justify-content: center; overflow: hidden;
-  background: radial-gradient(120% 90% at 85% 10%, #3a4fd8 0%, transparent 55%), radial-gradient(90% 80% at 10% 90%, #5b2bb8 0%, transparent 60%),
-    linear-gradient(160deg, #0b1a5c 0%, #1a2f9c 45%, #2a1570 100%);
-}
-html.light body {
-  background: radial-gradient(120% 90% at 85% 10%, #9fb7ff 0%, transparent 55%), radial-gradient(90% 80% at 10% 90%, #d9c4ff 0%, transparent 60%),
-    linear-gradient(160deg, #cfe0ff 0%, #a9c1ff 45%, #c9b8f5 100%);
-}
+body { overflow: hidden; background: #1a1446; font: 13px -apple-system, "PingFang SC", sans-serif; }
+/* 桌面：The Lake（macOS 动态壁纸的白天 / 夜晚两帧） */
+#desktop { position: fixed; inset: 0; background: url(lake-night.jpg) center / cover; }
+html.light #desktop { background-image: url(lake-day.jpg); }
+/* 顶部菜单栏 */
+#menubar { position: absolute; top: 0; left: 0; right: 0; height: 26px; display: flex; align-items: center; gap: 18px; padding: 0 14px;
+  color: #fff; text-shadow: 0 0 6px rgba(0, 0, 0, 0.35); background: rgba(20, 20, 40, 0.18); backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6); user-select: none; -webkit-user-select: none; z-index: 5; transition: transform 0.3s; }
+html.light #menubar { color: #111; text-shadow: none; background: rgba(255, 255, 255, 0.28); }
+#menubar .apple { font-size: 15px; }
+#menubar .sp { flex: 1; }
+/* Dock */
+#dock { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; padding: 7px 10px 9px; border-radius: 22px;
+  background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.28); backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6); z-index: 5; transition: transform 0.3s; }
+#dock .app { position: relative; display: block; cursor: pointer; transition: transform 0.15s; }
+#dock .app:hover { transform: translateY(-6px) scale(1.12); }
+#dock .app.running::after { content: ""; position: absolute; left: 50%; bottom: -6px; width: 4px; height: 4px; margin-left: -2px; border-radius: 2px; background: rgba(255, 255, 255, 0.85); }
+html.light #dock .app.running::after { background: rgba(0, 0, 0, 0.6); }
+#dock .app.bounce { animation: bounce 0.6s; }
+@keyframes bounce { 30% { transform: translateY(-16px); } 60% { transform: translateY(0); } 80% { transform: translateY(-5px); } }
+#dock .ico { display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; border-radius: 12px; box-sizing: border-box; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
+.ico-term { background: linear-gradient(#3a3a3a 0 9px, #111 9px); border: 1px solid #555; color: #eee; font: bold 15px Monaco, monospace; padding: 8px 0 0 3px; justify-content: flex-start !important; }
+.ico-folder { background: linear-gradient(#6cc3ff, #2f8fe8); position: relative; }
+.ico-folder::before { content: ""; position: absolute; top: 9px; left: 7px; width: 16px; height: 6px; border-radius: 3px 3px 0 0; background: #9ad6ff; }
+.ico-box { background: linear-gradient(#f3f3f3, #cfcfcf); color: #2f7de1; font: bold 24px -apple-system, sans-serif; }
+/* 窗口：可拖动（标题栏）、可拉大小（右下角）、双击标题栏 / 绿灯缩放；desk.js 管位置 */
 .win {
-  width: min(calc(100vw - 48px), 1000px); height: calc(100dvh - 48px); display: flex; flex-direction: column;
+  position: absolute; display: flex; flex-direction: column; min-width: 360px; min-height: 240px; resize: both;
   border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 22px 70px rgba(0, 0, 0, 0.55), 0 0 0 0.5px rgba(255, 255, 255, 0.18);
+  transform-origin: 50% 100%;
 }
+.win.anim { transition: left 0.28s, top 0.28s, width 0.28s, height 0.28s, transform 0.35s, opacity 0.35s, border-radius 0.28s; }
+.win.min { transform: translateY(40vh) scale(0.05); opacity: 0; pointer-events: none; }
+.win.closed { transform: scale(0.96); opacity: 0; pointer-events: none; }
+#desktop.full #menubar { transform: translateY(-100%); }
+#desktop.full #dock { transform: translate(-50%, 140%); }
+#desktop.full .win { border-radius: 0; }
 html.light .win { background: #fff; box-shadow: 0 22px 70px rgba(30, 40, 90, 0.35), 0 0 0 0.5px rgba(0, 0, 0, 0.15); }
 .bar {
-  flex: none; height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 12px; position: relative;
-  background: #262626; border-bottom: 1px solid #000; font: 12px -apple-system, "PingFang SC", sans-serif; color: #999; user-select: none;
+  flex: none; height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 12px; position: relative; cursor: default;
+  background: #262626; border-bottom: 1px solid #000; font: 12px -apple-system, "PingFang SC", sans-serif; color: #999; user-select: none; -webkit-user-select: none;
 }
 html.light .bar { background: #ececec; border-bottom-color: #d4d4d4; color: #666; }
-.bar i { width: 12px; height: 12px; border-radius: 6px; background: #ff5f57; }
+.bar i { width: 12px; height: 12px; border-radius: 6px; background: #ff5f57; cursor: pointer; position: relative; z-index: 1; }
 .bar i:nth-child(2) { background: #febc2e; }
 .bar i:nth-child(3) { background: #28c840; }
 .bar span { position: absolute; left: 0; right: 0; text-align: center; pointer-events: none; }
@@ -29,14 +53,14 @@ html.light .bar { background: #ececec; border-bottom-color: #d4d4d4; color: #666
 /* 全屏模式（同 Claude Code）：对话在屏幕里滚动，输入框和状态行固定在窗口底部；屏幕：窗口里自己滚动，不显示滚动条（同终端） */
 #screen { flex: 1; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; }
 #screen::-webkit-scrollbar { display: none; }
-#page { position: relative; }
+#page { position: relative; isolation: isolate; } /* 自己成一个层叠上下文：选区层（z-index -1）垫在文字下、窗口底色之上 */
 #term, #foot { --ttu-font-size: 14px; padding: 0 2ch; overflow: visible; background: transparent; position: relative; z-index: 0; }
 #term a, #foot a { color: inherit; text-decoration: none; }
 #term a:hover, #foot a:hover { background: rgba(127, 127, 127, 0.22); }
 /* 块：图片、用户的话（灰底铺满）——高度都是整行，整屏仍是一张行格 */
 #term .blk, #term .fig, #term .ask { display: block; }
 #term .fig { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-#term .fig img { display: block; border-radius: 6px; }
+#term .fig img { display: block; border-radius: 6px; cursor: zoom-in; }
 #term .ask { background: #373737; margin: 0 -2ch; padding: 0 2ch; }
 html.light #term .ask { background: #ececec; }
 #foot { flex: none; cursor: text; padding-bottom: 6px; }
@@ -50,9 +74,10 @@ html.light #foot .hint a { color: #666; }
 #sel { position: absolute; left: 0; top: 0; z-index: -1; pointer-events: none; }
 #sel > div { position: absolute; background: #b5d5ff; }
 .noscript { position: fixed; bottom: 20px; color: #ddd; font: 14px sans-serif; }
-/* 手机：窗口铺满，没有桌面 */
+/* 手机：窗口铺满，没有桌面、菜单栏和 Dock */
 @media (max-width: 600px) {
-  .win { width: 100vw; height: 100dvh; border-radius: 0; box-shadow: none; }
+  #menubar, #dock, .bar i { display: none; }
+  .win { inset: 0; width: auto !important; height: auto !important; left: 0 !important; top: 0 !important; border-radius: 0; box-shadow: none; resize: none; min-width: 0; }
   #term, #foot { --ttu-font-size: 12px; padding: 0 1ch; }
   #term .ask { margin: 0 -1ch; padding: 0 1ch; }
 }

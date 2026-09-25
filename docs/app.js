@@ -14,6 +14,9 @@
   var ORANGE = rgb("215;119;87"), GREEN = rgb("78;186;101");
   var chPx = 8, rowH = 17, cols = 0, theme = "", DIM = "", cache = {};
   var asked = 0, typed = 0, stream = null, spin = 0, spinTimer = 0, typeTimer = 0;
+  var big = {}; // 放大了的图（键：问号-段号）；默认小图（同备忘录），点一下放大到与正文左右对齐，再点缩回
+  var TPS = 80; // 模拟的生成速度（token / 秒）：中文约 1.3 字一个 token
+  var VERBS = ["Garnishing", "Pondering", "Crafting", "Brewing", "Noodling", "Percolating", "Simmering", "Conjuring", "Mulling", "Whirring", "Composing", "Tinkering"];
 
   // ---- 排版 ----
   function measure() {
@@ -84,13 +87,15 @@
   }
   // ⏺ 开头、其余行缩进 2 格（同 Claude Code 的回答）
   function answer(md) {
-    return trim(TTU.markdownLines(md, { width: cols - 2, theme: theme })).map(function (l, i) { return (i ? "  " : "⏺ ") + l; });
+    // ⏺ 用正文灰（dark 即默认前景 #c7c7c7；light 的默认前景近黑，另给 #555）
+    var dot = theme === "light" ? rgb("85;85;85") + "⏺" + RESET : "⏺";
+    return trim(TTU.markdownLines(md, { width: cols - 2, theme: theme })).map(function (l, i) { return (i ? "  " : dot + " ") + l; });
   }
   // 一问一答的行。upto = { part, lines }：只含前 part 段 + 第 part 段的前 lines 行源码（流式输出中）；不传 = 全文
   function turnRows(t, upto) {
-    var key = t + "|" + cols + "|" + theme;
+    var turn = TURNS[t], key = t + "|" + cols + "|" + theme + "|" + JSON.stringify(big) + "|" + (turn.worked || "");
     if (!upto && cache[key]) return cache[key];
-    var turn = TURNS[t], r = new Rows().text([""]);
+    var r = new Rows().text([""]);
     var ask = wrap(turn.ask, cols - 2).map(function (l, i) { return pad((i ? "  " : "> ") + l, cols); });
     r.block('<span class="ask">' + toHtml(ask) + "</span>");
     turn.parts.forEach(function (p, i) {
@@ -100,11 +105,15 @@
       r.text([""]);
       if (p.md) return r.text(answer(md));
       // 图片：agent 自己发的图——一次 Present 工具调用，图挂在 ⎿ 下面；块高取整到行，整屏仍是一张行格
-      r.text([GREEN + "⏺" + RESET + " " + BOLD + "Present" + RESET + "(" + p.file + ")", "  ⎿  " + DIM + p.alt + RESET]);
-      var w = Math.min((cols - 6) * chPx, p.w / 2, 1100), h = w * p.h / p.w;
-      r.block('<span class="fig" style="padding-left:' + 5 * chPx + "px;padding-top:" + rowH / 3 + "px;height:" + Math.ceil(h / rowH + 0.5) * rowH + 'px">' +
-        '<img src="' + escHtml(p.img) + '" alt="' + escHtml(p.alt) + '" width="' + Math.round(w) + '" height="' + Math.round(h) + '" decoding="async"></span>');
+      r.text([GREEN + "⏺" + RESET + " " + BOLD + "Present" + RESET + "(" + p.file + ")", "  ⎿  Presented " + BOLD + "1" + RESET + " image"]);
+      // 小图：约 40 列宽；大图：从 ⎿ 后一直到正文右边，左右对齐
+      var id = t + "-" + i, full = (cols - 5) * chPx, w = big[id] ? full : Math.min(full, Math.max(240, 40 * chPx)), h = w * p.h / p.w;
+      r.block('<span class="fig" data-fig="' + id + '" style="padding-left:' + 5 * chPx + "px;padding-top:" + rowH / 3 + "px;height:" + Math.ceil(h / rowH + 0.5) * rowH + 'px">' +
+        '<img src="' + escHtml(p.img) + '" alt="' + escHtml(p.alt) + '" title="' + escHtml(p.alt) + (big[id] ? "（点一下缩小）" : "（点一下放大）") +
+        '" width="' + Math.round(w) + '" height="' + Math.round(h) + '" decoding="async"></span>');
     });
+    // 一轮结束：✻ Worked for 34s · done 10:54 PM（同 Claude Code）
+    if (!upto && turn.worked) r.text(["", DIM + "✻ " + turn.worked + RESET]);
     var rows = r.flush().rows;
     return upto ? rows : (cache[key] = rows);
   }
@@ -114,21 +123,30 @@
   var SPIN = ["·", "✢", "✳", "✶", "✻", "✽", "✻", "✶", "✳", "✢"];
   function renderInput() {
     // 底部固定区：状态行（回答中是转圈的 ✻）、输入框、提示
-    var r = new Rows().text([stream ? ORANGE + SPIN[spin % SPIN.length] + " " + (stream.thinking ? "Thinking…" : "回答中…") + RESET + DIM + (touch ? "（轻点 直接出完）" : "（回车 直接出完）") + RESET : ""]);
+    // 同 Claude Code：· Garnishing… (47s · ↓ 2.4k tokens · thinking with medium effort)
+    var status = "";
+    if (stream) {
+      var secs = Math.floor((Date.now() - stream.t0) / 1000), tok = stream.tokens < 1000 ? stream.tokens : (stream.tokens / 1000).toFixed(1) + "k";
+      status = ORANGE + SPIN[spin % SPIN.length] + " " + stream.verb + "…" + RESET + DIM + " (" + secs + "s · ↓ " + tok + " tokens" +
+        (cols >= 70 ? " · thinking with medium effort" : "") + ")" + RESET;
+    }
+    var r = new Rows().text([status]);
     var q = asked < TURNS.length ? TURNS[asked].ask : "";
     var text = stream ? "" : q ? q.slice(0, typed) + DIM + q.slice(typed) + RESET : DIM + "（问完了，谢谢你读到这里）" + RESET;
-    var lines = wrap(q && !stream ? q : " ", cols - 6);
+    var lines = wrap(q && !stream ? q : " ", cols - 2);
     // 换行时打字进度按字数切到各行
     var left = typed, shown = stream || !q ? [text] : lines.map(function (l) {
       var n = Math.max(0, Math.min(l.length, left));
       left -= l.length;
       return l.slice(0, n) + DIM + l.slice(n) + RESET;
     });
-    r.text(box(shown.map(function (l, i) { return (i ? "  " : "> ") + l; }), cols, DIM));
+    // 同 Claude Code 的输入栏：上下各一条灰色横线，没有左右边框
+    var rule = DIM + "─".repeat(cols) + RESET;
+    r.text([rule].concat(shown.map(function (l, i) { return (i ? "  " : "> ") + l; }), [rule]));
     r.flush();
     var hint = !q && !stream
       ? '本页由 <a href="https://github.com/ApolloZhangOnGithub/terminal-style-ui">terminal-style-ui</a> 渲染 · <a data-act="top">回到开头</a>'
-      : (touch ? "轻点输入框 提问" : "回车 提问 · ↑↓ 滚动") + (asked < TURNS.length ? ' · <a data-act="all">Esc 全文</a>' : "");
+      : (stream ? (touch ? "轻点 直接出完" : "回车 直接出完") : touch ? "轻点输入框 提问" : "回车 提问 · ↑↓ 滚动") + (asked < TURNS.length ? ' · <a data-act="all">Esc 全文</a>' : "");
     r.rows.push({ k: "t", h: '<span class="hint">  ' + hint + "</span>" });
     input.innerHTML = join(r.rows, "");
   }
@@ -171,15 +189,15 @@
     clearInterval(spinTimer);
   }
   // 流式：同 teyvat 的 line-by-line——源码一行写完才显示这一行（段落整段出、表格一行行长出来），
-  // 节奏按这一行的长度估算生成时间（约 90 字 / 秒）；图片是一次工具调用，稍停一下整张出
+  // 节奏按这一行的 token 数（约 1.3 字一个）与 TPS 估算；图片是一次工具调用，稍停一下整张出
   function nextStep() {
     var turn = TURNS[stream.t], p = turn.parts[stream.part];
     if (!p) return null;
-    if (p.img) return { part: stream.part + 1, lines: 0, delay: 500 };
+    if (p.img) return { part: stream.part + 1, lines: 0, delay: 700, tokens: 60 };
     var lines = p.md.split("\n"), k = stream.lines + 1;
     while (k < lines.length && !lines[k - 1].trim()) k++;
-    var delay = Math.min(1100, 40 + (lines[k - 1] || "").length * 1000 / 90);
-    return k >= lines.length ? { part: stream.part + 1, lines: 0, delay: delay } : { part: stream.part, lines: k, delay: delay };
+    var tokens = Math.max(1, Math.ceil((lines[k - 1] || "").length / 1.3)), delay = Math.min(1600, 30 + tokens * 1000 / TPS);
+    return k >= lines.length ? { part: stream.part + 1, lines: 0, delay: delay, tokens: tokens } : { part: stream.part, lines: k, delay: delay, tokens: tokens };
   }
   function redrawStream() {
     var follow = nearBottom();
@@ -193,6 +211,7 @@
       stream.thinking = false;
       stream.part = step.part;
       stream.lines = step.lines;
+      stream.tokens += step.tokens;
       redrawStream();
       schedule();
     }, step.delay);
@@ -203,23 +222,24 @@
     stopTimers();
     var t = asked++;
     typed = 0;
-    stream = { t: t, part: 0, lines: 0, thinking: true };
+    stream = { t: t, part: 0, lines: 0, thinking: true, t0: Date.now(), tokens: 0, verb: VERBS[Math.floor(Math.random() * VERBS.length)] };
     stream.el = turnBlock(turnRows(t, upto()));
     spinTimer = setInterval(function () { spin++; renderInput(); }, 120);
     renderInput();
     toBottom();
-    stream.timer = setTimeout(schedule, 450 + Math.random() * 350);
+    stream.timer = setTimeout(function () { stream.tokens += 40 + Math.floor(Math.random() * 80); schedule(); }, 800 + Math.random() * 800); // 先想一会儿
   }
   function done(follow) {
     stopTimers();
+    var secs = Math.max(1, Math.round((Date.now() - stream.t0) / 1000));
+    TURNS[stream.t].worked = "Worked for " + secs + "s · done " + new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    stream.el.innerHTML = join(turnRows(stream.t), "");
     stream = null;
     renderInput();
     if (follow) toBottom();
   }
   function finish() {
-    if (!stream) return;
-    stream.el.innerHTML = join(turnRows(stream.t), "");
-    done(true);
+    if (stream) done(true);
   }
   function showAll() {
     var y = screen.scrollTop;
@@ -311,8 +331,9 @@
   });
 
   // ---- 重排：列数变了（窗口 / 浏览器缩放）才重排，按比例保住阅读位置 ----
+  // 窗口（拖大小、缩放、全屏）和浏览器缩放都会改屏幕尺寸：盯着屏幕本身
   var resizeFrame = 0;
-  window.addEventListener("resize", function () {
+  new ResizeObserver(function () {
     cancelAnimationFrame(resizeFrame);
     resizeFrame = requestAnimationFrame(function () {
       if (measure() === cols) return;
@@ -321,6 +342,18 @@
       if (follow) toBottom();
       else scrollByRows(Math.round(at * maxY() / rowH) - Math.round(screen.scrollTop / rowH));
     });
+  }).observe(screen);
+
+  // 点图：小图 ↔ 大图。重排后让这张图的顶边留在原来的屏幕位置
+  term.addEventListener("click", function (e) {
+    var fig = e.target.closest && e.target.closest(".fig");
+    if (!fig || String(document.getSelection())) return;
+    var id = fig.dataset.fig, y = fig.getBoundingClientRect().top;
+    big[id] = !big[id];
+    if (!big[id]) delete big[id];
+    renderAll();
+    var now = term.querySelector('[data-fig="' + id + '"]');
+    if (now) screen.scrollTop += now.getBoundingClientRect().top - y;
   });
   var setTheme = function (light) { root.classList.toggle("light", light); renderAll(); };
   toggle.addEventListener("click", function () {
