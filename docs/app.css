@@ -158,3 +158,26 @@ html.light #menubar .ime { background: #1d1d1f; color: #fff; }
 #menubar .bolt { fill: #333; }
 html.light #menubar .bolt { fill: #fff; }
 #clock { font-variant-numeric: tabular-nums; }
+
+/* ---- 液态玻璃（macOS 26 Tahoe）：不是毛玻璃——模糊很轻、背景几乎透过来，饱和与亮度提一点，边缘一圈高光、顶上镜面反光 ---- */
+/* 菜单栏：Tahoe 里整条透明，只靠文字阴影托住 */
+#menubar { background: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
+html.light #menubar { text-shadow: 0 0 6px rgba(255, 255, 255, 0.6); }
+/* Dock：玻璃画在 ::before 上（它带超椭圆遮罩），Dock 本身不遮罩，外阴影才留得住 */
+#dock { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.22)); }
+#dock::before { content: ""; position: absolute; inset: 0; z-index: -1; --r: 38px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06) 45%, rgba(255, 255, 255, 0.1));
+  -webkit-backdrop-filter: blur(3px) saturate(1.9) brightness(1.08); backdrop-filter: blur(3px) saturate(1.9) brightness(1.08);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.75), inset 0 -1px 0 rgba(255, 255, 255, 0.3), inset 1px 0 0 rgba(255, 255, 255, 0.35),
+    inset -1px 0 0 rgba(255, 255, 255, 0.35), inset 0 0 18px rgba(255, 255, 255, 0.18);
+  -webkit-mask: var(--sq-tl) top left / var(--r) var(--r) no-repeat, var(--sq-tr) top right / var(--r) var(--r) no-repeat,
+    var(--sq-br) bottom right / var(--r) var(--r) no-repeat, var(--sq-bl) bottom left / var(--r) var(--r) no-repeat,
+    linear-gradient(#000, #000) center / calc(100% - 2 * var(--r) + 1px) 100% no-repeat, linear-gradient(#000, #000) center / 100% calc(100% - 2 * var(--r) + 1px) no-repeat;
+  mask: var(--sq-tl) top left / var(--r) var(--r) no-repeat, var(--sq-tr) top right / var(--r) var(--r) no-repeat,
+    var(--sq-br) bottom right / var(--r) var(--r) no-repeat, var(--sq-bl) bottom left / var(--r) var(--r) no-repeat,
+    linear-gradient(#000, #000) center / calc(100% - 2 * var(--r) + 1px) 100% no-repeat, linear-gradient(#000, #000) center / 100% calc(100% - 2 * var(--r) + 1px) no-repeat; }
+/* 顶上的镜面反光：一道斜着的亮带 */
+#dock::after { content: ""; position: absolute; left: 10%; right: 40%; top: 2px; height: 40%; z-index: -1; pointer-events: none; border-radius: 30px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0)); filter: blur(2px); opacity: 0.8; }
+html.refract #dock::before { backdrop-filter: url(#lg) blur(2px) saturate(1.9) brightness(1.08); }
+#dock { isolation: isolate; }

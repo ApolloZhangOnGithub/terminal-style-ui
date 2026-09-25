@@ -244,6 +244,8 @@
     if (p.img) return { part: stream.part + 1, lines: 0, delay: 700, tokens: 60, wait: p.ready };
     var lines = p.md.split("\n"), k = stream.lines + 1;
     while (k < lines.length && !lines[k - 1].trim()) k++;
+    // 表格的分隔行（|---|---|）不单独出：跟下一行一起，免得先冒出一行空表格
+    while (k < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[k - 1])) k++;
     var tokens = Math.max(1, Math.ceil((lines[k - 1] || "").length / 1.3)), delay = Math.min(1600, 30 + tokens * 1000 / settings.tps);
     return k >= lines.length ? { part: stream.part + 1, lines: 0, delay: delay, tokens: tokens } : { part: stream.part, lines: k, delay: delay, tokens: tokens };
   }

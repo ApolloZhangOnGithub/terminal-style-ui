@@ -40,6 +40,9 @@ for (const line of source.split("\n")) {
 }
 flush();
 
+// 静态文件带上按内容算的版本号：改了就换地址，浏览器不会拿旧缓存
+import crypto from "node:crypto";
+const v = (f) => f + "?v=" + crypto.createHash("sha1").update(fs.readFileSync(path.join(here, f))).digest("hex").slice(0, 8);
 const escAttr = (s) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 const page = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -51,8 +54,8 @@ const page = `<!DOCTYPE html>
 <meta property="og:title" content="${escAttr(title)}">
 <meta property="og:description" content="${escAttr(description)}">
 <meta property="og:image" content="https://raw.githubusercontent.com/ApolloZhangOnGithub/terminal-style-ui/main/media/vscode-demo-md-dark.png">
-<link rel="stylesheet" href="terminal.css">
-<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="${v("terminal.css")}">
+<link rel="stylesheet" href="${v("app.css")}">
 <script>
   // 主题：手动选过的优先，否则跟随系统；首帧前定下，浅色不会先闪一下黑底
   if (localStorage.getItem("tsu-theme") ? localStorage.getItem("tsu-theme") === "light" : matchMedia("(prefers-color-scheme: light)").matches)
@@ -60,6 +63,9 @@ const page = `<!DOCTYPE html>
 </script>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="lg" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+  <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="1" seed="7" result="n"/><feGaussianBlur in="n" stdDeviation="3" result="nb"/>
+  <feDisplacementMap in="SourceGraphic" in2="nb" scale="22" xChannelSelector="R" yChannelSelector="G"/></filter></svg>
 <div id="desktop">
 <video id="wall" muted loop playsinline preload="none"></video>
 <div id="menubar"><span class="apple">✻</span><b id="appname">终端</b><span>Shell</span><span>编辑</span><span>显示</span><span>窗口</span><span>帮助</span><span class="sp"></span><span class="tray"><span class="ime">拼</span><svg viewBox="0 0 20 15" width="18" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 5.5a11.5 11.5 0 0 1 16 0"/><path d="M5 8.8a7 7 0 0 1 10 0"/><circle cx="10" cy="12.3" r="1.3" fill="currentColor" stroke="none"/></svg><svg viewBox="0 0 28 14" width="27" height="13"><rect x="1" y="1" width="22" height="12" rx="3.5" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="1.2"/><rect x="3" y="3" width="18" height="8" rx="2" fill="currentColor"/><path d="M24.5 5v4a2 2 0 0 0 0-4z" fill="currentColor" fill-opacity=".45"/><path d="M13.2 2.6 9.5 7.6h3l-1.3 3.8 3.9-5.2h-3z" class="bolt"/></svg><svg viewBox="0 0 20 16" width="18" height="15" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="1.5" width="18" height="5.5" rx="2.75"/><circle cx="4.2" cy="4.25" r="1.6" fill="currentColor" stroke="none"/><rect x="1" y="9" width="18" height="5.5" rx="2.75"/><circle cx="15.8" cy="11.75" r="1.6" fill="currentColor" stroke="none"/></svg></span><span id="clock"></span><i id="notch"></i></div>
@@ -84,7 +90,7 @@ const page = `<!DOCTYPE html>
       <p class="note">模拟 Claude 回答时每秒输出的 token 数。</p></section>
   </div>
 </div></div>
-<div id="dock" class="sq">
+<div id="dock">
   <a class="app running" data-app="win" title="终端"><span class="ico sq ico-term">&gt;_</span></a>
   <a class="app" data-app="settings" title="系统设置"><span class="ico sq ico-gear">⚙︎</span></a>
   <a class="app" href="https://github.com/ApolloZhangOnGithub/terminal-style-ui" target="_blank" rel="noopener" title="terminal-style-ui（GitHub）"><span class="ico sq ico-folder"></span></a>
@@ -93,9 +99,9 @@ const page = `<!DOCTYPE html>
 </div>
 <noscript><p class="noscript">这个页面在浏览器里现场排版，需要 JavaScript。原文见 <a href="https://github.com/ApolloZhangOnGithub/terminal-style-ui/blob/main/docs/blog.md">docs/blog.md</a>。</p></noscript>
 <script id="turns" type="application/json">${JSON.stringify(turns).replace(/</g, "\\u003c")}</script>
-<script src="ttu-core.js"></script>
-<script src="app.js"></script>
-<script src="desk.js"></script>
+<script src="${v("ttu-core.js")}"></script>
+<script src="${v("app.js")}"></script>
+<script src="${v("desk.js")}"></script>
 </body>
 </html>
 `;

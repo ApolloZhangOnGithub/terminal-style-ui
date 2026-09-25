@@ -7,6 +7,8 @@
   var root = document.documentElement, desk = $("desktop"), menubar = $("menubar"), dock = $("dock"), clock = $("clock"), wall = $("wall");
   var mobile = function () { return matchMedia("(max-width: 600px)").matches; };
   var EDGE = 6; // 边缘多宽算“拉大小”
+  // 液态玻璃的边缘折射要 backdrop-filter: url(#lg)，目前只有 Chromium 支持；其余浏览器只用模糊 + 高光
+  if (window.chrome && CSS.supports("backdrop-filter", "url(#lg)")) root.classList.add("refract");
 
   // ---- 菜单栏时钟：同 macOS 中文格式「9月25日 周五  22:50:07」（显示秒）----
   function tick() {
