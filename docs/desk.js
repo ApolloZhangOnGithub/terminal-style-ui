@@ -170,20 +170,20 @@
     var a = area();
     this.place({ left: 0, top: a.top, width: a.width, height: a.height + 8 }, true);
   };
-  // 全屏（绿灯）：菜单栏、Dock 让开，窗口铺满整个屏幕；浏览器支持时顺带进真正的全屏
+  // 两种全屏分开（同 macOS）：
+  // · 窗口全屏（绿灯）：只在这个桌面里——菜单栏、Dock 让开，窗口铺满桌面；不碰浏览器
+  // · 系统全屏（菜单栏「显示 → 进入全屏幕」或 ⌃⌘F）：整个桌面进浏览器的全屏，菜单栏、Dock、窗口照旧
   Win.prototype.enterFull = function () {
     if (this.state !== "zoom") this.saved = this.rect();
     this.state = "full";
     desk.classList.add("full");
     this.place({ left: 0, top: 0, width: window.innerWidth, height: window.innerHeight }, true);
-    if (document.documentElement.requestFullscreen && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(function () {});
   };
   Win.prototype.exitFull = function () {
     if (this.state !== "full") return;
     this.state = "normal";
     desk.classList.remove("full");
     this.place(this.saved || this.initial(), true);
-    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
   };
   Win.prototype.hide = function (how) {
     if (this.state === "full") this.exitFull();
@@ -203,7 +203,15 @@
     if (dockApp) dockApp.classList.add("running");
     this.front();
   };
-  document.addEventListener("fullscreenchange", function () { if (!document.fullscreenElement) Object.keys(apps).forEach(function (k) { apps[k].exitFull(); }); });
+  function osFullscreen() {
+    var d = document.documentElement;
+    if (document.fullscreenElement) (document.exitFullscreen || function () {}).call(document);
+    else if (d.requestFullscreen) d.requestFullscreen().catch(function () {});
+    else if (d.webkitRequestFullscreen) d.webkitRequestFullscreen();
+  }
+  var viewMenu = Array.prototype.find.call(menubar.querySelectorAll("span"), function (el) { return el.textContent === "显示"; });
+  if (viewMenu) { viewMenu.style.cursor = "default"; viewMenu.title = "进入 / 退出全屏幕（⌃⌘F）"; viewMenu.addEventListener("click", osFullscreen); }
+  window.addEventListener("keydown", function (e) { if (e.ctrlKey && e.metaKey && (e.key === "f" || e.key === "F")) { e.preventDefault(); osFullscreen(); } });
 
   var term = new Win($("win"), "终端", function () {
     var a = area(), w = Math.min(1000, a.width - 80);
