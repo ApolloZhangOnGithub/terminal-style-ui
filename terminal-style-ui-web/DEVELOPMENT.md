@@ -64,7 +64,7 @@ Markdown 源文本
 19. **tmd 交互界面的两个坑**（2026-09-25）：① 输入框首行在 ❯ 后补空格时超出一列，pi-tui 普通屏直接抛 "Rendered line exceeds terminal width" 崩进程（pi-tui 已知问题）——只替换不添加，超宽就用原行；崩溃日志默认覆盖写 宿主 agent 目录下的 pi-crash.log，改写到 $TMPDIR/tmd。② 快速输入 `/tmd hard.md` 回车变成 `Print(hard.tmd)`：pi-tui Editor 的补全是异步的，按键攒成一批同步处理时中间的补全请求全被取消，列表和前缀停在 `/t`，回车把旧补全套到新文字上（"/tmd hard." + "tmd"）。修：记下列表对应的文字与光标，回车 / Tab 时对不上就先丢弃列表。上游 pi-tui 的输入框同一实现，同样有此竞态。
 20. **打包进 JavaScriptCore（Quick Look）**（2026-09-25）：沙盒扩展里没有 Node，渲染核心拆成 core.js、esbuild 打成 IIFE。逐个踩到：纯 JSContext 没有 TextEncoder / URL / global；Node 内置模块替身最初用 Proxy，esbuild 转 CommonJS 时只复制实际存在的属性，具名导入全是 undefined；config.js 装载时就读 package.json；theme.js 的裸 "chalk" 解析到另一份，浏览器版等级 0，粗体全丢；process.env 没有 COLORTERM，主题退回 256 色（ansiToHtml 只认真彩）。修完后与 Node 版逐字节一致。
 21. **Quick Look 选不中扩展**（2026-09-25）：扩展声明宽泛类型（public.source-code / public.data）不生效——代码文件被系统文本预览抢走，动态类型（.WIKI、.go）根本不给第三方。改为声明具体 UTI + App 登记自己的类型（见 terminal-style-ui-quicklook/gen_types.py）。另：Quick Look 会缓存失败的预览，调试时换文件名或 qlmanage -r cache；NSLog 内容在统一日志里是 <private>，要用 os.Logger 标 .public。
-22. **代码块行号栏改版**（2026-09-25，用户定稿）：从「行号 │ 代码」（坑 16 为此补过续行竖线）改为 Claude Code 的 Write 样式——灰色行号 + 一个空格、不画竖线。纯代码文件还去掉左右边距、行号贴左。画竖线的旧实现注释保留在 core.js（patchCodeGutterBar）。
+22. **代码块行号栏改版**（2026-09-25，定稿）：从「行号 │ 代码」（坑 16 为此补过续行竖线）改为 Claude Code 的 Write 样式——灰色行号 + 一个空格、不画竖线。纯代码文件还去掉左右边距、行号贴左。画竖线的旧实现注释保留在 core.js（patchCodeGutterBar）。
 
 ## 五、尚未解决（见 LIMITATIONS.md）
 

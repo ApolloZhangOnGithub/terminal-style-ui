@@ -198,7 +198,7 @@ function graphemeWidth(segment) {
     // fork 2026-08-14：全角序号 ①②③（U+2460-24FF Enclosed Alphanumerics，EAW=ambiguous）
     // iTerm2 中文环境按 2 列全角渲染，但 get-east-asian-width 默认按 1 列 → 叠字/折行错乱。
     // 注意：不能整体 ambiguousAsWide（Box Drawing │ 等 ambiguous 字符在终端是 1 列窄），只对序号强制 2。
-    // fork 2026-09-13（用户：含 ② 的表格行右边框缩进一格）："排版按 2 格"只解决了字形重叠，终端实际只分配 1 格
+    // fork 2026-09-13（反馈：含 ② 的表格行右边框缩进一格）："排版按 2 格"只解决了字形重叠，终端实际只分配 1 格
     // （iTerm2 / Terminal.app / tmux 默认 ambiguous=narrow）→ 行比边框短 1 格。补齐契约：输出层在序号后补一个真实空格
     // （padEnclosedForNarrowCells，terminal.js write 调用），排版 2 格 = 屏幕 2 格；终端本身给 2 格（tui.js 启动 CPR 探测）时不补。
     if (cp >= 0x2460 && cp <= 0x24ff) width = 2;

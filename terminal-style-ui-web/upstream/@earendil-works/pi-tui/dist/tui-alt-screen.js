@@ -60,7 +60,7 @@ export class TuiAltScreen extends TuiBase {
     mouseEnabled;
     openUrl;
     onRightClickPaste;
-    // 滚轮幂律映射 + 不对称平滑状态（2026-08-14 用户定稿）：基线 1 行/tick，快速（<250ms 间隔）按 13*(16/dt)^2.5 加速
+    // 滚轮幂律映射 + 不对称平滑状态（2026-08-14 定稿）：基线 1 行/tick，快速（<250ms 间隔）按 13*(16/dt)^2.5 加速
     _lastWheelTime = 0;
     _wheelVel = 1;
     constructor(terminal, showHardwareCursor, logDirectory, options = {}) {
@@ -395,7 +395,7 @@ export class TuiAltScreen extends TuiBase {
         return undefined;
     }
     routeWheel(event) {
-        // 幂律映射 + 不对称平滑（2026-08-14 用户定稿：.14 幂律手感可保留，修匀速自动加速）
+        // 幂律映射 + 不对称平滑（2026-08-14 定稿：.14 幂律手感可保留，修匀速自动加速）
         //   - 行数映射：13 × (16/dt)^2.5，dt=事件间隔ms；16ms(快)→13 行/tick，45ms+(慢)→1 行
         //   - 不对称平滑：加速 70% 快速跟进（2-3 tick 稳定，无"匀速持续爬升"感）；减速 30% 平滑回落（惯性渐停）
         //   - 新序列（间隔≥250ms）回基线 1
@@ -830,7 +830,7 @@ export class TuiAltScreen extends TuiBase {
                         });
                         wl.on("error", () => {
                             // wl-copy 不可用（ENOENT）→ 先试 X11/XWayland 路径（DISPLAY=:0 时 xclip 可用）→ 最后 OSC 52
-                            // 2026-09-07（用户：Linux 选中复制不生效）：原实现 ENOENT 直接跳 OSC 52——
+                            // 2026-09-07（反馈：Linux 选中复制不生效）：原实现 ENOENT 直接跳 OSC 52——
                             //   但 gnome-terminal 等默认禁 OSC 52 写剪贴板 → 复制必失败还 flash "Copied!" 误导。
                             //   现在完整链 wl-copy → xclip/xsel → OSC 52，且失败给真实提示。
                             if (!process.env.DISPLAY || !x11ClipCopy()) {

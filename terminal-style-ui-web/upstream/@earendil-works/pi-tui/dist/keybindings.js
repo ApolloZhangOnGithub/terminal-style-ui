@@ -109,12 +109,12 @@ export const TUI_KEYBINDINGS = {
         description: "Jump to previous semantic prompt",
     },
     "tui.altScreen.nextPrompt": {
-        // 原默认 ctrl+shift+down 已让给回底部（2026-08-13 用户要求），需自行绑定键位
+        // 原默认 ctrl+shift+down 已让给回底部（2026-08-13 需求），需自行绑定键位
         defaultKeys: [],
         description: "Jump to next semantic prompt",
     },
     "tui.altScreen.top": { defaultKeys: "home", description: "Scroll viewport to top" },
-    // 2026-08-13 用户要求：ctrl+shift+down 回到底部（ctrl+down 与 macOS 系统快捷键冲突）
+    // 2026-08-13 需求：ctrl+shift+down 回到底部（ctrl+down 与 macOS 系统快捷键冲突）
     "tui.altScreen.bottom": { defaultKeys: ["end", "ctrl+shift+down"], description: "Scroll viewport to bottom" },
 };
 function normalizeKeys(keys) {

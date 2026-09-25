@@ -16,11 +16,13 @@ const title = /^# (.+)$/m.exec(source)[1];
 const description = /^> (.+)$/m.exec(source)[1].replace(/[*`]/g, "").slice(0, 120);
 
 // 图片：原图是仓库里的 PNG（raw 链接又大又跨域）；构建时转成两份 WebP 放在 Pages 同源——小图默认显示，大图放大时用。原图没变就不重转
-function thumb(name) {
-  const src = path.join(here, name + ".jpg"), out = path.join(here, "img", "wall-" + name + ".webp");
+// 墙纸缩略图：公开的两张总有；Apple 的（只在本地、不进仓库）有原图才生成
+function thumb(file) {
+  const src = path.join(here, file), out = path.join(here, "img", "wall-" + file.replace(/\.\w+$/, "") + ".webp");
+  if (!fs.existsSync(src)) return;
   if (!fs.existsSync(out) || fs.statSync(out).mtimeMs < fs.statSync(src).mtimeMs) execFileSync("cwebp", ["-quiet", "-q", "80", "-resize", "300", "0", src, "-o", out]);
 }
-["tahoe-day", "tahoe-night", "lake-day", "lake-night"].forEach(thumb);
+["pub-emerald.webp", "pub-sunset.webp", "tahoe-day.jpg", "tahoe-night.jpg", "lake-day.jpg", "lake-night.jpg"].forEach(thumb);
 function webp(src, width) {
   const name = path.basename(src, ".png") + (width > 1000 ? "-l" : "-s") + ".webp", out = path.join(here, "img", name);
   fs.mkdirSync(path.dirname(out), { recursive: true });
@@ -101,11 +103,14 @@ ${article}
   <div class="pane">
     <section><h3>外观</h3><div class="seg" data-set="theme"><button data-v="auto">自动</button><button data-v="light">浅色</button><button data-v="dark">深色</button></div></section>
     <section><h3>墙纸</h3><div class="walls" data-set="wall">
-      <button data-v="tahoe-day"><img class="sq" data-src="img/wall-tahoe-day.webp" alt=""><span>太浩湖白天</span></button>
-      <button data-v="tahoe-night"><img class="sq" data-src="img/wall-tahoe-night.webp" alt=""><span>太浩湖夜晚</span></button>
-      <button data-v="lake-day"><img class="sq" data-src="img/wall-lake-day.webp" alt=""><span>The Lake 白天</span></button>
-      <button data-v="lake-night"><img class="sq" data-src="img/wall-lake-night.webp" alt=""><span>The Lake 夜晚</span></button>
-    </div><label class="row"><input type="checkbox" data-set="motion"> 动态墙纸（太浩湖是航拍视频）</label></section>
+      <button data-v="tahoe-day" hidden><img class="sq" data-src="img/wall-tahoe-day.webp" alt=""><span>太浩湖白天</span></button>
+      <button data-v="tahoe-night" hidden><img class="sq" data-src="img/wall-tahoe-night.webp" alt=""><span>太浩湖夜晚</span></button>
+      <button data-v="lake-day" hidden><img class="sq" data-src="img/wall-lake-day.webp" alt=""><span>The Lake 白天</span></button>
+      <button data-v="lake-night" hidden><img class="sq" data-src="img/wall-lake-night.webp" alt=""><span>The Lake 夜晚</span></button>
+      <button data-v="pub-emerald"><img class="sq" data-src="img/wall-pub-emerald.webp" alt=""><span>翡翠湾</span></button>
+      <button data-v="pub-sunset"><img class="sq" data-src="img/wall-pub-sunset.webp" alt=""><span>太浩湖黄昏</span></button>
+    </div><label class="row"><input type="checkbox" data-set="motion"> 动态墙纸（太浩湖是航拍视频）</label>
+      <p class="note">翡翠湾、太浩湖黄昏：Wikimedia Commons，CC0。</p></section>
     <section><h3>文字大小</h3><div class="row"><input type="range" min="11" max="18" step="1" data-set="font"><output data-out="font"></output></div></section>
     <section><h3>生成速度</h3><div class="row"><input type="range" min="20" max="240" step="10" data-set="tps"><output data-out="tps"></output></div>
       <p class="note">模拟 Claude 回答时每秒输出的 token 数。</p></section>

@@ -477,7 +477,8 @@
     if (fig) load(figPart(fig.dataset.fig).big); // 指上去就先取大图
   });
   term.addEventListener("click", function (e) {
-    var fig = e.target.closest && e.target.closest(".fig");
+    // 只有点到图片本身才放大 / 缩小；点图片所在那一行的空白处不算（免得误触）
+    var fig = e.target.tagName === "IMG" && e.target.closest(".fig");
     if (!fig || String(document.getSelection())) return;
     var id = fig.dataset.fig, p = figPart(id);
     (big[id] ? Promise.resolve() : load(p.big)).then(function () {

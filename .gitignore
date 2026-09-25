@@ -8,3 +8,11 @@ lib/
 # upstream/ 是定制版 pi-tui 的源码（按原包结构，文件在 dist/、node_modules/ 下）：要提交
 !terminal-style-ui-web/upstream/**/dist/
 !terminal-style-ui-web/upstream/**/node_modules/
+
+# 模块说明（.SPEC）只留在本地
+*.SPEC
+# Apple 的墙纸只留在本地（版权归 Apple，不随 MIT 分发）
+docs/tahoe-*
+docs/lake-*
+docs/img/wall-tahoe-*
+docs/img/wall-lake-*

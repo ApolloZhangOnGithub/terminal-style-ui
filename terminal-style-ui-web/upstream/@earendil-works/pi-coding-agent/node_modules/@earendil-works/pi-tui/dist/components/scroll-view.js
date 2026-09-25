@@ -57,7 +57,7 @@ export class ScrollView extends Container {
         return (this.scrollbar === "auto" && this.contentHeight > this.currentViewportHeight && this.transientScrollbarVisible);
     }
     // fork: 检测 followingEnd 状态变化并回调（判重，仅变化时触发）
-    // 2026-08-14：onScrollActivity 曾在此触发（follow hint 自动隐藏定时器重置），用户反馈底部黑屏疑似
+    // 2026-08-14：onScrollActivity 曾在此触发（follow hint 自动隐藏定时器重置），反馈底部黑屏疑似
     // 滚动时双渲染导致，已移除该联动——只保留 onFollowChange。
     _notifyFollowChange() {
         if (this.followingEnd !== this._lastFollowingEnd) {

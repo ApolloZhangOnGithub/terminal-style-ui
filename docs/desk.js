@@ -19,15 +19,18 @@
   tick();
   setTimeout(function () { tick(); setInterval(tick, 1000); }, 1000 - Date.now() % 1000); // 对齐到整秒
 
-  // ---- 墙纸：太浩湖白天 / 夜晚（航拍，可动）、The Lake 白天 / 夜晚；是单独的选择，不跟深浅外观走（同 macOS）----
-  var WALLS = { "tahoe-day": 1, "tahoe-night": 1, "lake-day": 0, "lake-night": 0 }; // 值：有没有动态版
-  var prefs = { wall: WALLS[localStorage.getItem("tsu-wall")] !== undefined ? localStorage.getItem("tsu-wall") : "tahoe-day", motion: localStorage.getItem("tsu-motion") !== "off" };
+  // ---- 墙纸：单独的选择，不跟深浅外观走（同 macOS）。仓库里只放可以公开分发的图（CC0：翡翠湾、太浩湖黄昏）；
+  // Apple 的墙纸（太浩湖航拍、The Lake）只在本地（.gitignore），能取到就多出这几个选项并默认用它们，线上取不到就只剩公开的
+  var WALLS = { "pub-emerald": { still: "pub-emerald.webp" }, "pub-sunset": { still: "pub-sunset.webp" } };
+  var LOCAL = { "tahoe-day": { still: "tahoe-day.jpg", video: "tahoe-day.mp4" }, "tahoe-night": { still: "tahoe-night.jpg", video: "tahoe-night.mp4" },
+    "lake-day": { still: "lake-day.jpg" }, "lake-night": { still: "lake-night.jpg" } };
+  var prefs = { wall: localStorage.getItem("tsu-wall") || "tahoe-day", motion: localStorage.getItem("tsu-motion") !== "off" };
   if (matchMedia("(prefers-reduced-motion: reduce)").matches && !localStorage.getItem("tsu-motion")) prefs.motion = false;
   function applyWall() {
     if (mobile()) return;
-    var still = prefs.wall + ".jpg";
+    var w = WALLS[prefs.wall] || WALLS["pub-emerald"], still = w.still;
     desk.style.backgroundImage = "url(" + still + ")";
-    var video = WALLS[prefs.wall] && prefs.motion ? prefs.wall + ".mp4" : "";
+    var video = w.video && prefs.motion ? w.video : "";
     if (!video) { wall.classList.remove("on"); wall.pause(); return; }
     if (!wall.src.endsWith(video)) {
       wall.classList.remove("on");
@@ -38,6 +41,18 @@
     wall.play().catch(function () {});
   }
   applyWall();
+  // 本地的 Apple 墙纸：探一下能不能取到，取到了就加进可选、显示对应的缩略图
+  Object.keys(LOCAL).forEach(function (k) {
+    var probe = new Image();
+    probe.onload = function () {
+      WALLS[k] = LOCAL[k];
+      var b = document.querySelector('#settings [data-v="' + k + '"]');
+      if (b) b.hidden = false;
+      if (prefs.wall === k) applyWall();
+      syncSettings();
+    };
+    probe.src = LOCAL[k].still;
+  });
 
   // ---- 窗口 ----
   var area = function () {
@@ -233,9 +248,10 @@
   function syncSettings() {
     var mode = localStorage.getItem("tsu-theme") || "auto";
     pane.querySelectorAll('[data-set="theme"] button').forEach(function (b) { b.classList.toggle("on", b.dataset.v === mode); });
-    pane.querySelectorAll('[data-set="wall"] button').forEach(function (b) { b.classList.toggle("on", b.dataset.v === prefs.wall); });
+    var cur = WALLS[prefs.wall] ? prefs.wall : "pub-emerald"; // 选的是本地才有的墙纸而这里取不到时，实际用的是翡翠湾
+    pane.querySelectorAll('[data-set="wall"] button').forEach(function (b) { b.classList.toggle("on", b.dataset.v === cur); });
     pane.querySelector('[data-set="motion"]').checked = prefs.motion;
-    pane.querySelector('[data-set="motion"]').disabled = !WALLS[prefs.wall];
+    pane.querySelector('[data-set="motion"]').disabled = !(WALLS[prefs.wall] && WALLS[prefs.wall].video);
     var font = localStorage.getItem("tsu-font") || 13, tps = window.TSU_APP ? window.TSU_APP.tps : 80;
     pane.querySelector('[data-set="font"]').value = font;
     pane.querySelector('[data-out="font"]').textContent = font + " px";

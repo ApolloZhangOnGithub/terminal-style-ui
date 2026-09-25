@@ -1,5 +1,5 @@
 // ── fork 统一环境标识符（JS 版）───────────────────────────────────────
-// 2026-09-16（用户定稿）：渲染类默认 global，只有明确 WSL 特殊的（ASCII 符号回退 / ANSI 残渣处理）
+// 2026-09-16（定稿）：渲染类默认 global，只有明确 WSL 特殊的（ASCII 符号回退 / ANSI 残渣处理）
 // 才用 isWsl()。禁止各处散落 process.platform / WSL_DISTRO_NAME / WT_SESSION 判断。
 //
 // 环境：macos（优先开发）/ linux（适配已测）/ wsl（问题最多，blockrender 已有一批分支）/ win32（Windows 原生）

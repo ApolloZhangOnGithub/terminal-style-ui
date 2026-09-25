@@ -352,7 +352,7 @@ const matchesLegacyModifierSequence = (data, key, modifier) => {
     if (modifier === MODIFIERS.ctrl) {
         return matchesLegacySequence(data, LEGACY_CTRL_SEQUENCES[key]);
     }
-    // 2026-09-07（用户：ctrl+shift+down follow 无效）：ctrl+shift / alt 等组合——
+    // 2026-09-07（反馈：ctrl+shift+down follow 无效）：ctrl+shift / alt 等组合——
     //   Linux 终端（gnome-terminal 等）默认不发 kitty 协议，发标准 CSI 修改键序列
     //   \x1b[1;<mod>X（mod = modifier+1，如 ctrl+shift+down = \x1b[1;6B）。
     //   原实现这里直接 false → 所有非 shift/ctrl 单修饰键组合全部失效。

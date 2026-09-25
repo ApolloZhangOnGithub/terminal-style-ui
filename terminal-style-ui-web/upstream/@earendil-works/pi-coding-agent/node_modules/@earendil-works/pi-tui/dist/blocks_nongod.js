@@ -18,7 +18,7 @@ export const GUTTER = 2; // 内容列：bullet "• " 占 2 列，内容从第 2
 
 import { isWsl } from "./env.js";
 
-// 2026-09-16（用户定稿：只要 wsl，别的不要）：只 WSL 用 ASCII 符号回退（⏺◆◇⎿→ 渲染 2 格但 visibleWidth 算 1 格，
+// 2026-09-16（定稿：只要 wsl，别的不要）：只 WSL 用 ASCII 符号回退（⏺◆◇⎿→ 渲染 2 格但 visibleWidth 算 1 格，
 // 行溢出终端硬折）。之前 win32/WT_SESSION 也算进去，收紧到只 isWsl()。Mac/Linux 不受影响。
 const _needsAsciiSym = isWsl();
 // 2026-09-13（ISSUE 226）：SYM 只定义一次——此前 globalThis.__genshinSYM 与 export const SYM 是两个内容相同的字面量，改一处漏一处。
@@ -28,7 +28,7 @@ export const SYM = _needsAsciiSym
   : { dot: "⏺", diamond: "◆", diamondOpen: "◇", result: "⎿", star: "✤", snow: "❄", prompt: "❯", arrow: "▸" };
 globalThis.__genshinSYM = SYM;
 
-// 2026-09-22（用户：result/social 折行有时顶头、不跟“序号后的文字”对齐；要求**统一函数和渲染管线**）：
+// 2026-09-22（反馈：result/social 折行有时顶头、不跟“序号后的文字”对齐；要求**统一函数和渲染管线**）：
 // 前缀识别原来在**三处各写一份**（hangWrapText / 挂起折行 helper / bulletText），改一处漏两处；
 // 且三份都**不认**「数字 + 两个以上空格」这种形态（Read/Write/social 行号栏就是 `  1  code`）→
 // indW=0 → 续行只拿到块缩进 → 对不上序号后的文字（表现为顶头）。现在收口到这一处，三处共用。
@@ -43,7 +43,7 @@ export function prefixWidthOf(line, visibleWidth) {
 }
 
 // 状态点（工具用）：进行=◦(accent) / 错=•(error) / 成功=•(success)。统一在这里，别各处各写。
-// 2026-08-14 用户定稿：进行中/等待中（partial）本身是空心黄 ◦，为美观统一用实心黄 •。
+// 2026-08-14 定稿：进行中/等待中（partial）本身是空心黄 ◦，为美观统一用实心黄 •。
 // 空心语义保留在此注释：未完成=空心，完成/出错=实心。
 export function dot(theme, opts) {
   const o = opts || {};
@@ -282,7 +282,7 @@ export function bulletText(dotStr, text, cont) {
             if (indentW <= 0 || indentW >= width) return hangWrapText(l, width, h);
             // 每行独立 hangWrapText：识别该行自己的前缀（行号、diff 标记等）
             const lineWrapped = hangWrapText(l, width - indentW, h);
-            // 2026-09-22（用户：result 里换行有时顶头/不跟序号后的文字对齐；要求统一函数与渲染管线）：
+            // 2026-09-22（反馈：result 里换行有时顶头/不跟序号后的文字对齐；要求统一函数与渲染管线）：
             // 此前对「行号竖线行」（`1 │ …`）特判 pad = 行号前缀长（4），普通行 pad = indentW（6）
             // → 同一个 Result 块里不同行的续行/首行左边界不一致（实测 6 vs 8），而且 hangWrapText
             // 已经按「该行自己的前缀」补过续行缩进了，再加 pad 就是双重缩进。
@@ -366,7 +366,7 @@ export const renderToolCall = {
   label(theme, name, detail, opts) {
     // 2026-09-13（用户）：opts.noDot → 不画状态点，但用空格占住点的宽度（否则文字左移 1 格对不齐）——Execute 调用行默认隐藏原点用，其他 tool 不受影响
     const d = opts?.noDot ? " " : dot(theme, opts || { partial: true });
-    // 2026-09-24（用户定稿）：续行对齐到工具名首字母（E），不是路径 /——prefixWidthOf 识别「⏺ 」前缀（点+空格），
+    // 2026-09-24（定稿）：续行对齐到工具名首字母（E），不是路径 /——prefixWidthOf 识别「⏺ 」前缀（点+空格），
     // 续行缩进到工具名首字母，比「对齐路径 /」更简洁。不再用 wrapWithPrefix 显式前缀。
     const text = detail ? theme.bold(name) + " " + String(detail) : theme.bold(name);
     return bulletText(d, text);
@@ -380,17 +380,17 @@ export const renderToolCall = {
   },
 
   // ── 标准调用行管线（2026-08-17）──────────────────────────────────────
-  // ◦ ToolName title         ← 第一行：toolname + 标题（意图，col 0），空格分隔无冒号（2026-08-17 用户定稿）
+  // ◦ ToolName title         ← 第一行：toolname + 标题（意图，col 0），空格分隔无冒号（2026-08-17 定稿）
   //   body line 1            ← 指令详情区：缩进到 col GUTTER(=2)，与第一行 toolname 的
   //   body line 2               首个字母（如 Execute 的 E）上下对齐
   // 设计：title 捕捉「为什么跑」（意图），body 是「跑了什么」（指令/参数）。
-  // 对齐规范（2026-08-17 用户定稿）：body 与 toolname 首字母对齐，不是与结果区对齐。
+  // 对齐规范（2026-08-17 定稿）：body 与 toolname 首字母对齐，不是与结果区对齐。
   // 实现：Container + 每行独立 Text（避开 bulletText 多行前缀叠加，见 2026-08-13.39 行号对齐修复）。
   detail(theme, name, title, body, opts) {
     const c = new C();
     // 2026-09-13（用户）：同 label——opts.noDot 不画点但空格占位（对齐保持）
     const d = opts?.noDot ? " " : dot(theme, opts || { partial: true });
-    // opts.suffix：灰字后缀（如 hibernate 的唤醒时间 "Until 08:00"，2026-08-20 用户定稿）
+    // opts.suffix：灰字后缀（如 hibernate 的唤醒时间 "Until 08:00"，2026-08-20 定稿）
     // 注意：theme 没有 dim 方法，灰字必须用 theme.fg("dim", ...)——2026-08-20 实测 theme.dim 是
     // undefined → TypeError → tool-execution catch → fallback（只显示工具名），排查 3 轮才发现。
     const head = d + " " + theme.bold(name) + (title ? " " + title : "") + (opts?.suffix ? " " + theme.fg("dim", opts.suffix) : "");
@@ -406,13 +406,13 @@ export const renderToolCall = {
 
 // ── renderMessage: 所有消息（tool result / notification / alert / ...）────
 
-// 2026-08-18 用户定稿：渲染层统一剥离 feed 的 [result N tokens, ctx X.Xk] 标注
+// 2026-08-18 定稿：渲染层统一剥离 feed 的 [result N tokens, ctx X.Xk] 标注
 // （backbone.ts 拼进 content 给模型感知结果大小与当前 context 总量——渲染层不需要显示，
 // 否则会漏在裸传 content 的工具结果里，如 intentions 曾出现）。
 // 注意：只剥 backbone 的 feed 标注；工具自设计的 summary（如 execute 的 [HH:MM:SS, N tokens]）不含
 // "result" 前缀，不受影响（read/execute 的 summary 行保留）。
 export function stripResultTokenMark(text) {
-  // 2026-09-09（用户：Result 还带 [id: xxx]——9/8 只剥 [result N tokens] 漏 id/时间戳——"垃圾过滤器"）：
+  // 2026-09-09（反馈：Result 还带 [id: xxx]——9/8 只剥 [result N tokens] 漏 id/时间戳——"垃圾过滤器"）：
   // 剥尾部工具元数据段组（不限行首——[background: ...] [id: xxx] [result N tokens, ctx X] [remaining: N]
   // [HH:MM:SS.mmm +Ns] 任意顺序连续/空格隔开——只剥元数据前缀段，不碰内容里的正常 [方括号]。
   // feed content 保留不剥（模型要）——渲染层显示剥离。
@@ -449,7 +449,7 @@ export const renderMessage = {
   // markdown 渲染：内容走 Markdown 实例（渲染表格/列表/代码块等），供需要富文本的工具结果用
   // 与 assistant 文字同款管线（new Markdown + markdownBullet）；markdownTheme 用调用方传入的 theme 现构造
   // （不依赖 theme.js getMarkdownTheme——blocks_nongod 部署在两个位置，ui_elements 实例拿不到注入的 markdownTheme）
-  // 2026-09-23 用户定稿：tool result 要能渲染 markdown 表格
+  // 2026-09-23 定稿：tool result 要能渲染 markdown 表格
   markdown(theme, ctx, content) {
     const text = stripResultTokenMark(content?.[0]?.text ?? "");
     if (!text || !_Markdown) return this.output(theme, ctx, content);
@@ -496,10 +496,10 @@ export const renderMessage = {
 
   // 通知/警告：◆ Label \n  content（收到的消息用菱形）
   // color（可选）：给 label 指定 theme 色键（如 "result" / "lifeRestart"），无则默认白粗体
-  // subtitle（可选，2026-08-18 用户定稿）：dim 小标题，跟在 Label 后（空格分隔，工具调用行风格——无冒号无点）
+  // subtitle（可选，2026-08-18 定稿）：dim 小标题，跟在 Label 后（空格分隔，工具调用行风格——无冒号无点）
   // symbol（可选，2026-08-18）：自定义标记符号（如 Life Restarted 用 ✤），默认 ◆
   notice(theme, label, content, color, subtitle, symbol) {
-    // 2026-08-18 用户定稿：专属色时菱形与 label 文字同色
+    // 2026-08-18 定稿：专属色时菱形与 label 文字同色
     const d = color ? theme.fg(color, symbol || "◆") : diamond(theme);
     const c = C();
     const labelStr = d + " " + (color ? theme.fg(color, theme.bold(label)) : theme.bold(label));
@@ -583,7 +583,7 @@ export function renderExecuteResult(theme, state) {
   const indent = " ".repeat(GUTTER);
   const c = C();
   // 2026-09-14（用户）：at 时间戳开关——/s「at 时间戳」（globalThis.__genshinResultAt，默认**关**）
-  // 2026-09-17（用户：设置里隐藏了为什么还显示）：原 `?? true` 与 settings.ts 的 `?? false` 不一致——
+  // 2026-09-17（反馈：设置里隐藏了为什么还显示）：原 `?? true` 与 settings.ts 的 `?? false` 不一致——
   // 未设值时渲染默认开。改为 `=== true`（只有显式开启才显示），与设置面板默认一致。
   const clock = st.endTs != null && globalThis.__genshinResultAt === true ? theme.fg("dim", ` at ${fmtClock(st.endTs)}`) : "";
   if (st.kind === "created") {
@@ -607,7 +607,7 @@ export function renderExecuteResult(theme, state) {
     default: head = st.kind === "done" && !(st.elapsedMs > 0) ? "done instantly" : `done in ${elapsed}`;
   }
   const remPart = st.remaining > 0 ? ` (${st.remaining} remaining)` : "";
-  // 2026-09-14（用户定稿）：结果行统一 Result 风格——Result "标题" done in 2s at 01:54:01
+  // 2026-09-14（定稿）：结果行统一 Result 风格——Result "标题" done in 2s at 01:54:01
   // 与 Execute 调用行同构（renderToolCall.label），原 ⎿ 标题 Done in 2s / ▸ 独立行两种旧样式废弃。
   // merged（紧挨 Created 的折线）判定保留在 renderers.ts 传 state，但画法统一。
   const titleQ = st.kind === "done" && st.title ? '"' + st.title + '" ' : "";

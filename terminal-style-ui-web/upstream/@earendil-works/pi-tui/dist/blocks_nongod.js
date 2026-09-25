@@ -26,7 +26,7 @@ export const SYM = _isWSL
 globalThis.__genshinSYM = SYM;
 
 // 状态点（工具用）：进行=◦(accent) / 错=•(error) / 成功=•(success)。统一在这里，别各处各写。
-// 2026-08-14 用户定稿：进行中/等待中（partial）本身是空心黄 ◦，为美观统一用实心黄 •。
+// 2026-08-14 定稿：进行中/等待中（partial）本身是空心黄 ◦，为美观统一用实心黄 •。
 // 空心语义保留在此注释：未完成=空心，完成/出错=实心。
 export function dot(theme, opts) {
   const o = opts || {};
@@ -321,17 +321,17 @@ export const renderToolCall = {
   },
 
   // ── 标准调用行管线（2026-08-17）──────────────────────────────────────
-  // ◦ ToolName title         ← 第一行：toolname + 标题（意图，col 0），空格分隔无冒号（2026-08-17 用户定稿）
+  // ◦ ToolName title         ← 第一行：toolname + 标题（意图，col 0），空格分隔无冒号（2026-08-17 定稿）
   //   body line 1            ← 指令详情区：缩进到 col GUTTER(=2)，与第一行 toolname 的
   //   body line 2               首个字母（如 Execute 的 E）上下对齐
   // 设计：title 捕捉「为什么跑」（意图），body 是「跑了什么」（指令/参数）。
-  // 对齐规范（2026-08-17 用户定稿）：body 与 toolname 首字母对齐，不是与结果区对齐。
+  // 对齐规范（2026-08-17 定稿）：body 与 toolname 首字母对齐，不是与结果区对齐。
   // 实现：Container + 每行独立 Text（避开 bulletText 多行前缀叠加，见 2026-08-13.39 行号对齐修复）。
   detail(theme, name, title, body, opts) {
     const c = new C();
     // 2026-09-13（用户）：同 label——opts.noDot 不画点但空格占位（对齐保持）
     const d = opts?.noDot ? " " : dot(theme, opts || { partial: true });
-    // opts.suffix：灰字后缀（如 hibernate 的唤醒时间 "Until 08:00"，2026-08-20 用户定稿）
+    // opts.suffix：灰字后缀（如 hibernate 的唤醒时间 "Until 08:00"，2026-08-20 定稿）
     // 注意：theme 没有 dim 方法，灰字必须用 theme.fg("dim", ...)——2026-08-20 实测 theme.dim 是
     // undefined → TypeError → tool-execution catch → fallback（只显示工具名），排查 3 轮才发现。
     const head = d + " " + theme.bold(name) + (title ? " " + title : "") + (opts?.suffix ? " " + theme.fg("dim", opts.suffix) : "");
@@ -347,13 +347,13 @@ export const renderToolCall = {
 
 // ── renderMessage: 所有消息（tool result / notification / alert / ...）────
 
-// 2026-08-18 用户定稿：渲染层统一剥离 feed 的 [result N tokens, ctx X.Xk] 标注
+// 2026-08-18 定稿：渲染层统一剥离 feed 的 [result N tokens, ctx X.Xk] 标注
 // （backbone.ts 拼进 content 给模型感知结果大小与当前 context 总量——渲染层不需要显示，
 // 否则会漏在裸传 content 的工具结果里，如 intentions 曾出现）。
 // 注意：只剥 backbone 的 feed 标注；工具自设计的 summary（如 execute 的 [HH:MM:SS, N tokens]）不含
 // "result" 前缀，不受影响（read/execute 的 summary 行保留）。
 export function stripResultTokenMark(text) {
-  // 2026-09-09（用户：Result 还带 [id: xxx]——9/8 只剥 [result N tokens] 漏 id/时间戳——"垃圾过滤器"）：
+  // 2026-09-09（反馈：Result 还带 [id: xxx]——9/8 只剥 [result N tokens] 漏 id/时间戳——"垃圾过滤器"）：
   // 剥尾部工具元数据段组（不限行首——[background: ...] [id: xxx] [result N tokens, ctx X] [remaining: N]
   // [HH:MM:SS.mmm +Ns] 任意顺序连续/空格隔开——只剥元数据前缀段，不碰内容里的正常 [方括号]。
   // feed content 保留不剥（模型要）——渲染层显示剥离。
@@ -402,10 +402,10 @@ export const renderMessage = {
 
   // 通知/警告：◆ Label \n  content（收到的消息用菱形）
   // color（可选）：给 label 指定 theme 色键（如 "result" / "lifeRestart"），无则默认白粗体
-  // subtitle（可选，2026-08-18 用户定稿）：dim 小标题，跟在 Label 后（空格分隔，工具调用行风格——无冒号无点）
+  // subtitle（可选，2026-08-18 定稿）：dim 小标题，跟在 Label 后（空格分隔，工具调用行风格——无冒号无点）
   // symbol（可选，2026-08-18）：自定义标记符号（如 Life Restarted 用 ✤），默认 ◆
   notice(theme, label, content, color, subtitle, symbol) {
-    // 2026-08-18 用户定稿：专属色时菱形与 label 文字同色
+    // 2026-08-18 定稿：专属色时菱形与 label 文字同色
     const d = color ? theme.fg(color, symbol || "◆") : diamond(theme);
     const c = C();
     const labelStr = d + " " + (color ? theme.fg(color, theme.bold(label)) : theme.bold(label));

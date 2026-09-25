@@ -175,7 +175,7 @@ export class TuiBase extends Container {
     constructor(terminal, showHardwareCursor, logDirectory) {
         super();
         this.terminal = terminal;
-        // 2026-08-18 统一配置目录（用户定稿：只用 ~/.fork，不用 ~/.pi）：
+        // 2026-08-18 统一配置目录（定稿：只用 ~/.fork，不用 ~/.pi）：
         // 原逻辑读 PI_CODING_AGENT_DIR（0.3.0 更名前的变量名，launcher 已弃用）且回退 ~/.pi/agent。
         // fork 的 agent 目录真相源 = GENSHIN_CODING_AGENT_DIR（APP_NAME=genshin 派生，launcher.sh 设置）
         // 或 PAIMON_CODING_AGENT_DIR（launcher 同时保留）——回退路径统一到 ~/.terminal-style-ui/agent。

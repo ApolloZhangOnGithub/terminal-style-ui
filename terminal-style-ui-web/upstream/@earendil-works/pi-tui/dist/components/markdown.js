@@ -336,7 +336,7 @@ export class Markdown {
                 // restore heading styling after their own ANSI resets instead of falling back to
                 // the default text style.
                 // fork: 标题一律【粗体】，去掉 theme.heading 的黄色。
-                // 2026-09-13（用户定稿）：h1 不再额外加下划线——assistant 块渲染不需要上下划线。
+                // 2026-09-13（定稿）：h1 不再额外加下划线——assistant 块渲染不需要上下划线。
                 let headingStyleFn;
                 if (headingLevel === 1) {
                     headingStyleFn = (text) => this.theme.bold(text);
@@ -384,7 +384,7 @@ export class Markdown {
             }
             case "code": {
                 const indent = this.theme.codeBlockIndent ?? "  ";
-                // 2026-09-13（用户：这行很恶心）——不再渲染代码块开头围栏行（代码块靠行号 gutter + 配色区分）。
+                // 2026-09-13（反馈：这行很恶心）——不再渲染代码块开头围栏行（代码块靠行号 gutter + 配色区分）。
                 // 原文保留，恢复时删掉下面 // OLD: 行的注释符即可。
                 // OLD: lines.push(this.theme.codeBlockBorder(`\`\`\`${token.lang || ""}`));
                 // fork: 代码块行号 gutter（0.80.7 时代定制，0.84.1 rebase 时丢失）
