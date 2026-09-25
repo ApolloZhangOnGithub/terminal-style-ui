@@ -75,6 +75,74 @@
   const rowsEl = document.createElement("div");
   rowsEl.id = "ttu-rows";
   pre.append(rowsEl);
+  // 光标同步：光标（闪烁竖线）+ 当前行淡底色；位置由插件给的估计行 + 前后文字定
+  const caret = document.createElement("div");
+  caret.id = "ttu-caret";
+  const lineBand = document.createElement("div");
+  lineBand.id = "ttu-line";
+  pre.append(caret, lineBand);
+  const hideCursor = () => { caret.hidden = true; lineBand.hidden = true; };
+  hideCursor();
+  window.addEventListener("focus", hideCursor); // 焦点在预览上：不显示编辑器光标
+  // 在 [r0, r1] 行里找 s，返回离估计行最近的 { row, offset }（offset = 匹配在该行文本里的起点）
+  function findNear(s, r0, r1, est) {
+    let best = null;
+    for (let r = r0; r <= r1; r++) {
+      const t = rowsEl.children[r]?.textContent ?? "";
+      for (let i = t.indexOf(s); i >= 0; i = t.indexOf(s, i + 1)) {
+        const d = Math.abs(r - est);
+        if (!best || d < best.d) best = { row: r, offset: i, d };
+      }
+    }
+    return best;
+  }
+  // 行内第 offset 个字符处的横坐标（DOM 实际位置：中文 / 制表符格子都准）
+  function xAt(rowEl, offset) {
+    const walker = document.createTreeWalker(rowEl, NodeFilter.SHOW_TEXT);
+    let node, left = offset;
+    while ((node = walker.nextNode())) {
+      if (left <= node.length) {
+        const range = document.createRange();
+        range.setStart(node, left);
+        range.collapse(true);
+        const rect = range.getClientRects()[0] ?? node.parentElement.getBoundingClientRect();
+        return (left === node.length && !range.getClientRects()[0] ? rect.right : rect.left) - pre.getBoundingClientRect().left;
+      }
+      left -= node.length;
+    }
+    return null;
+  }
+  function placeCursor(msg) {
+    const n = rowsEl.children.length;
+    if (!n) return hideCursor();
+    const est = msg.row;
+    const r0 = Math.max(0, Math.floor(est) - 2), r1 = Math.min(n - 1, Math.ceil(Math.max(est, msg.nextRow - 1)) + 2);
+    let hit = null;
+    for (let len = Math.min(msg.before.length, 16); len >= 2 && !hit; len--) {
+      const s = msg.before.slice(-len);
+      const f = findNear(s, r0, r1, est);
+      if (f) hit = { row: f.row, offset: f.offset + s.length };
+    }
+    for (let len = Math.min(msg.after.length, 16); len >= 2 && !hit; len--) {
+      const f = findNear(msg.after.slice(0, len), r0, r1, est);
+      if (f) hit = { row: f.row, offset: f.offset };
+    }
+    const row = hit ? hit.row : Math.min(n - 1, Math.max(0, Math.round(est)));
+    const top = origin() - pre.offsetTop + row * rowHeight();
+    lineBand.style.top = `${top}px`;
+    lineBand.hidden = false;
+    const x = hit ? xAt(rowsEl.children[row], hit.offset) : null;
+    if (x === null) caret.hidden = true;
+    else {
+      caret.style.top = `${top}px`;
+      caret.style.left = `${x - 1}px`;
+      caret.hidden = false;
+      caret.style.animation = "none"; // 移动后立即显示、重新开始闪
+      void caret.offsetWidth;
+      caret.style.animation = "";
+    }
+    vscode.postMessage({ type: "cursorAck", row, found: !!hit, left: hit ? (rowsEl.children[row].textContent ?? "").slice(0, hit.offset) : null });
+  }
   const tpl = document.createElement("template");
   const rowsHtml = (lines) => lines.map((l) => `<div class="r">${l}</div>`).join("");
   function patchRows(start, remove, lines) {
@@ -179,6 +247,10 @@
         else vscode.postMessage({ type: "rendered", seq: msg.seq, cols });
         break;
       }
+      case "cursor":
+        if (msg.hide || document.hasFocus()) hideCursor();
+        else placeCursor(msg);
+        break;
       case "scrollToRow": // 让该行贴顶再吸附到行格（底边对齐）；文首（第 0 行）滚到页顶，保留顶部留白
         scrollQuietly(msg.row < 0.5 ? 0 : snapY(topOf(msg.row)));
         vscode.postMessage({ type: "scrollAck", row: rowAt(window.scrollY) });

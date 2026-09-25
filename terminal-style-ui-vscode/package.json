@@ -245,6 +245,11 @@
           "default": true,
           "markdownDescription": "编辑器与预览双向联动滚动（双击预览跳到对应源码行）。"
         },
+        "terminalStyleUi.cursorSync": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "焦点在源文件编辑器上时，预览里在对应位置显示光标（Markdown 按附近文字对齐列，找不到时只标出所在行）。"
+        },
         "terminalStyleUi.chromePath": {
           "type": "string",
           "default": "",

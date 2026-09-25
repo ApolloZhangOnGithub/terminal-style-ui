@@ -138,6 +138,21 @@ exports.run = async () => {
   assert.match(sel.text, /┌─+┬/, "复制文本应带表格边框");
   console.log(`[smoke] 6c 自绘选区 OK（${sel.blocks} 行，整行高、对齐字符格；复制带边框）`);
 
+  // 6d. 光标同步：Markdown（去掉 ** 后按附近文字对齐列）与代码块里，预览光标紧跟在对应文字后面
+  const curFile = path.join(dir, "cursor.md");
+  fs.writeFileSync(curFile, "# 光标\n\n第一段 **加粗 ALPHAWORD** 后面\n\n```js\nconst BETA = 1\n```\n");
+  const curEditor = await show(vscode.Uri.file(curFile));
+  await waitFor("预览跟随到 cursor.md", () => acked((m) => m.html?.includes("ALPHAWORD")));
+  const cursorAt = async (line, ch, expectLeft) => {
+    stats.lastCursor = null;
+    curEditor.selection = new vscode.Selection(line, ch, line, ch);
+    const c = await waitFor(`光标回执 ${line}:${ch}`, () => stats.lastCursor);
+    assert.ok(c.found && c.left.endsWith(expectLeft), `光标应紧跟「${expectLeft}」：${JSON.stringify(c)}`);
+  };
+  await cursorAt(2, "第一段 **加粗 ALPHAWORD".length, "ALPHAWORD");
+  await cursorAt(5, "const BE".length, "const BE");
+  console.log("[smoke] 6d 光标同步 OK（Markdown 加粗后、代码块中）");
+
   // 7. 预览跟随活动的 Markdown 编辑器
   await show(writeDoc("other.md", "OTHER-MARK"));
   await waitFor("预览跟随到 other.md", () => acked((m) => m.html?.includes("OTHER-MARK")));

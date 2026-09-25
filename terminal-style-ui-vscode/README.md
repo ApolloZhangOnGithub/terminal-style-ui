@@ -48,6 +48,10 @@ code --install-extension terminal-style-ui-vscode-0.1.1.vsix
 
 **联动**：编辑器与预览双向滚动（按块级源码映射对齐）；双击预览跳到源码对应行。
 
+**光标同步**：焦点在源文件编辑器上时，预览里在对应位置显示闪烁的光标与当前行底色（Markdown 按光标前后的文字对齐到列，找不到时只标出所在行）；焦点移到预览上即隐藏。
+
+**跟手**：打字到预览画出约 11–13ms（一帧以内），大文档也一样——不防抖，只重渲染改动的块、只替换变化的行。
+
 **滚动**：按整行吸附，同终端 / Claude Code 一行一行的手感——视口底边落在行边界上（最底一行完整、最上一行可能被截），拉到最顶除外；滚轮与触控板的滚动量累积满一行才走一行，方向键 / 翻页键按整行走，页内查找跳转后也停在整行上。同终端不显示滚动条。
 
 **选中**：同 iTerm——每行一个整行高、对齐字符格的浅蓝块，选中文字变黑；复制出来带表格边框、代码行号栏，与终端一致。
@@ -73,6 +77,7 @@ code --install-extension terminal-style-ui-vscode-0.1.1.vsix
 | `terminalStyleUi.fontSize` | 13 | 字号（px），与 iTerm 实测对齐；预览里缩放会写回这里 |
 | `terminalStyleUi.width` | 0 | 渲染列数；0 = 按面板宽度自动计算（拖动分栏会重排，与终端窗口行为一致） |
 | `terminalStyleUi.scrollSync` | true | 编辑器与预览双向联动滚动 |
+| `terminalStyleUi.cursorSync` | true | 焦点在源文件编辑器上时，预览里显示对应位置的光标 |
 | `terminalStyleUi.chromePath` | 空 | 导出 PDF 用的浏览器；空 = 自动找 Chrome / Edge / Chromium / Brave |
 | `terminalStyleUi.libraryPath` | 空 | 渲染库目录（开发调试用）；空 = 插件自带的渲染库 |
 

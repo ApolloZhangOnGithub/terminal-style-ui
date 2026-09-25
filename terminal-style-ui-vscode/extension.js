@@ -278,6 +278,27 @@ function bindWebview(context, panel, initialUri, isPreview = false) {
     webview.postMessage({ type: "scrollToRow", row: lineToRow(blocks, line) });
   };
 
+  // 光标同步（按焦点）：焦点在这份文档的编辑器上时，预览里在对应位置显示光标；否则隐藏。
+  // 位置：源码映射估出渲染行，再用光标前后几个字（去掉渲染后不显示的标记符号）在附近几行里找准列——预览页做
+  const MARKUP = /[*_`~#>[\]()|\\]/g;
+  const clean = (s) => s.replace(/\t/g, "   ").replace(MARKUP, "");
+  const postCursor = () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!config().get("cursorSync") || !blocks || !editor || editor.document.uri.toString() !== key || !(vscode.window.state.focused || process.env.TTU_TEST_DIR)) { // 集成测试的窗口常在后台
+      webview.postMessage({ type: "cursor", hide: true });
+      return;
+    }
+    const pos = editor.selection.active;
+    const text = editor.document.lineAt(pos.line).text;
+    webview.postMessage({
+      type: "cursor",
+      row: lineToRow(blocks, pos.line),
+      nextRow: lineToRow(blocks, pos.line + 1),
+      before: clean(text.slice(0, pos.character)).slice(-16),
+      after: clean(text.slice(pos.character)).slice(0, 16),
+    });
+  };
+
   // 预览 → 编辑器：预览顶部的渲染行对应的源码行置顶
   const revealInEditors = (row) => {
     if (!blocks) return;
@@ -344,6 +365,7 @@ function bindWebview(context, panel, initialUri, isPreview = false) {
     if (msg.perf) msg.perf.post = Date.now();
     webview.postMessage(msg);
     followEditor(); // 内容 / 列数变化后行号会移动：按编辑器当前位置重新对齐
+    postCursor();
   };
   // 不防抖（防抖本身就是 40ms 延迟）：编辑后下一轮事件循环就渲染；渲染进行中又有编辑，就等这次做完再补一次（合并，不排队）
   let running = false;
@@ -392,6 +414,9 @@ function bindWebview(context, panel, initialUri, isPreview = false) {
           cols = msg.cols;
           refresh();
           break;
+        case "cursorAck": // 测试用：光标落在哪（行、行内光标左边的文字）
+          stats.lastCursor = msg;
+          break;
         case "rendered":
           stats.lastAck = msg;
           if (msg.perf) (stats.perf ??= []).push(msg.perf);
@@ -421,6 +446,11 @@ function bindWebview(context, panel, initialUri, isPreview = false) {
         schedule();
       }
     }),
+    vscode.window.onDidChangeTextEditorSelection((e) => {
+      if (e.textEditor.document.uri.toString() === key) postCursor();
+    }),
+    vscode.window.onDidChangeActiveTextEditor(() => postCursor()),
+    vscode.window.onDidChangeWindowState(() => postCursor()),
     vscode.window.onDidChangeTextEditorVisibleRanges((e) => {
       if (e.textEditor.document.uri.toString() === key && Date.now() >= quietEditorUntil) followEditor(e.textEditor);
     }),
@@ -468,6 +498,10 @@ function shellHtml(context, webview, libDir) {
   .terminal-style-ui .ttu-box::selection { color: transparent; -webkit-text-fill-color: transparent; }
   #ttu-sel { position: absolute; left: 0; top: 0; z-index: -1; pointer-events: none; user-select: none; }
   /* 每行一个块：空行也占一行高；屏幕外的行跳过排版与绘制（大文档打字时只重排改动附近） */
+  #ttu-caret { position: absolute; width: 2px; height: 1lh; background: currentColor; pointer-events: none; animation: ttu-blink 1.1s steps(1) infinite; }
+  #ttu-line { position: absolute; left: 0; right: 0; height: 1lh; z-index: -1; pointer-events: none; background: rgba(255, 255, 255, 0.07); }
+  html.light #ttu-line { background: rgba(0, 0, 0, 0.05); }
+  @keyframes ttu-blink { 50% { opacity: 0; } }
   #ttu-rows > .r { display: block; min-height: 1lh; content-visibility: auto; contain-intrinsic-size: auto 1lh; }
   #ttu-sel > div { position: absolute; background: #b5d5ff; }
   #ttu-zoom { position: fixed; top: 8px; right: 16px; padding: 2px 8px; border-radius: 4px; font: 12px var(--vscode-font-family);
