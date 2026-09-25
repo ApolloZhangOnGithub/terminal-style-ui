@@ -1,13 +1,14 @@
-// desk.js —— 博客页的“桌面”：菜单栏时钟、终端窗口（标题栏拖动、右下角拉大小、双击标题栏缩放、红灯关、黄灯收进 Dock、绿灯全屏）、Dock。
-// 窗口里的内容由 app.js 负责（它监听屏幕尺寸，窗口一变就按新列数重排）。手机上没有桌面，窗口铺满
+// desk.js —— 博客页的“桌面”：墙纸（太浩湖航拍 / The Lake）、菜单栏时钟、窗口（标题栏拖动、四边四角拉大小、双击标题栏缩放、
+// 红灯关、黄灯收进 Dock、绿灯全屏、点一下到最前）、Dock、设置 App。终端窗口里的内容归 app.js（它盯着屏幕尺寸，窗口一变就按新列数重排）。
+// 手机上没有桌面，终端窗口铺满
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
-  var desk = $("desktop"), win = $("win"), bar = $("bar"), menubar = $("menubar"), dock = $("dock"), dockTerm = $("dock-term"), clock = $("clock");
+  var root = document.documentElement, desk = $("desktop"), menubar = $("menubar"), dock = $("dock"), clock = $("clock"), wall = $("wall");
   var mobile = function () { return matchMedia("(max-width: 600px)").matches; };
-  var state = "normal", saved = null; // normal | zoom | full | min | closed
+  var EDGE = 6; // 边缘多宽算“拉大小”
 
-  // 菜单栏时钟：同 macOS 中文格式「9月25日 周五 22:50」
+  // ---- 菜单栏时钟：同 macOS 中文格式「9月25日 周五 22:50」----
   function tick() {
     var d = new Date();
     clock.textContent = (d.getMonth() + 1) + "月" + d.getDate() + "日 周" + "日一二三四五六"[d.getDay()] + " " + d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
@@ -15,108 +16,243 @@
   tick();
   setInterval(tick, 10000);
 
-  // 可用区域：菜单栏以下、Dock 以上
-  function area() {
+  // ---- 墙纸：太浩湖（白天 / 黄昏航拍，可动）或 The Lake；跟着深浅走 ----
+  var prefs = { wall: localStorage.getItem("tsu-wall") || "tahoe", motion: localStorage.getItem("tsu-motion") !== "off" };
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches && !localStorage.getItem("tsu-motion")) prefs.motion = false;
+  function applyWall() {
+    if (mobile()) return;
+    var light = root.classList.contains("light");
+    var still = prefs.wall === "lake" ? (light ? "lake-day.jpg" : "lake-night.jpg") : (light ? "tahoe-day.jpg" : "tahoe-dusk.jpg");
+    desk.style.backgroundImage = "url(" + still + ")";
+    var video = prefs.wall === "tahoe" && prefs.motion ? (light ? "tahoe-day.mp4" : "tahoe-dusk.mp4") : "";
+    if (!video) { wall.classList.remove("on"); wall.pause(); return; }
+    if (!wall.src.endsWith(video)) {
+      wall.classList.remove("on");
+      wall.poster = still;
+      wall.src = video;
+      wall.oncanplay = function () { wall.classList.add("on"); };
+    }
+    wall.play().catch(function () {});
+  }
+  applyWall();
+  document.addEventListener("tsu-theme", applyWall);
+
+  // ---- 窗口 ----
+  var area = function () {
     var top = menubar.offsetHeight, bottom = window.innerHeight - dock.offsetHeight - 16;
     return { top: top, bottom: bottom, width: window.innerWidth, height: bottom - top };
-  }
-  function place(r, animate) {
-    win.classList.toggle("anim", !!animate);
-    win.style.left = r.left + "px";
-    win.style.top = r.top + "px";
-    win.style.width = r.width + "px";
-    win.style.height = r.height + "px";
-  }
-  var rect = function () { return { left: win.offsetLeft, top: win.offsetTop, width: win.offsetWidth, height: win.offsetHeight }; };
-  function initial() {
-    var a = area(), w = Math.min(1000, a.width - 80), h = a.height - 28;
-    return { left: Math.round((a.width - w) / 2), top: a.top + 14, width: w, height: h };
-  }
-  if (!mobile()) place(initial());
+  };
+  var apps = {};
+  function Win(el, name, initial) {
+    var self = this;
+    this.el = el;
+    this.name = name;
+    this.bar = el.querySelector(".bar");
+    this.initial = initial;
+    this.state = el.classList.contains("closed") ? "closed" : "normal"; // normal | zoom | full | min | closed
+    this.saved = null;
+    apps[el.id] = this;
+    if (!mobile() && this.state !== "closed") this.place(initial());
 
-  // 标题栏拖动（不含三个灯和切换按钮）
-  bar.addEventListener("pointerdown", function (e) {
-    if (mobile() || e.button !== 0 || e.target.closest("i, button") || state === "full") return;
-    if (state === "zoom") { state = "normal"; } // 拖动缩放后的窗口：回到普通状态
-    var r = rect(), x0 = e.clientX, y0 = e.clientY;
-    win.classList.remove("anim");
-    bar.setPointerCapture(e.pointerId);
-    function move(ev) {
-      var a = area();
-      var left = Math.max(80 - r.width, Math.min(a.width - 80, r.left + ev.clientX - x0));
-      var top = Math.max(a.top, Math.min(window.innerHeight - 60, r.top + ev.clientY - y0));
-      win.style.left = left + "px";
-      win.style.top = top + "px";
-    }
+    // 点一下到最前，菜单栏的 App 名跟着换
+    el.addEventListener("pointerdown", function () { self.front(); }, true);
+    // 标题栏拖动（不含三个灯和按钮）
+    this.bar.addEventListener("pointerdown", function (e) {
+      if (mobile() || e.button !== 0 || e.target.closest("i, button") || self.state === "full" || self.edge) return;
+      e.preventDefault(); // 按下标题栏不清掉对话里的选区
+      if (self.state === "zoom") self.state = "normal";
+      // 拖动只改 transform（交给合成器，跟屏幕刷新率走，不重排、不重绘窗口内容），松手再落到 left / top
+      var r = self.rect(), x0 = e.clientX, y0 = e.clientY, a = area(), dx = 0, dy = 0;
+      el.style.willChange = "transform";
+      self.drag(e, self.bar, function (ev) {
+        dx = Math.max(80 - r.width, Math.min(a.width - 80, r.left + ev.clientX - x0)) - r.left;
+        dy = Math.max(a.top, Math.min(window.innerHeight - 60, r.top + ev.clientY - y0)) - r.top;
+        el.style.transform = "translate3d(" + dx + "px," + dy + "px,0)";
+      }, function () {
+        el.style.transform = "";
+        el.style.willChange = "";
+        el.style.left = r.left + dx + "px";
+        el.style.top = r.top + dy + "px";
+      });
+    });
+    this.bar.addEventListener("dblclick", function (e) { if (!e.target.closest("i, button")) self.zoom(); });
+    // 四边四角拉大小：指针靠近边缘时换光标，按下即拉
+    el.addEventListener("pointermove", function (e) {
+      if (self.resizing) return;
+      var r = el.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, ed = "";
+      if (!mobile() && self.state !== "full") {
+        if (y < EDGE) ed += "n"; else if (y > r.height - EDGE) ed += "s";
+        if (x < EDGE) ed += "w"; else if (x > r.width - EDGE) ed += "e";
+      }
+      if (ed === self.edge) return;
+      if (self.edge) el.classList.remove("rs-" + self.edge);
+      self.edge = ed;
+      if (ed) el.classList.add("rs-" + ed);
+    });
+    el.addEventListener("pointerleave", function () {
+      if (self.resizing || !self.edge) return;
+      el.classList.remove("rs-" + self.edge);
+      self.edge = "";
+    });
+    el.addEventListener("pointerdown", function (e) {
+      if (!self.edge || e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (self.state === "zoom") self.state = "normal";
+      var r = self.rect(), x0 = e.clientX, y0 = e.clientY, ed = self.edge;
+      var minW = parseFloat(getComputedStyle(el).minWidth) || 360, minH = parseFloat(getComputedStyle(el).minHeight) || 240;
+      self.resizing = true;
+      self.drag(e, el, function (ev) {
+        var dx = ev.clientX - x0, dy = ev.clientY - y0, n = { left: r.left, top: r.top, width: r.width, height: r.height };
+        if (ed.indexOf("e") >= 0) n.width = Math.max(minW, r.width + dx);
+        if (ed.indexOf("s") >= 0) n.height = Math.max(minH, r.height + dy);
+        if (ed.indexOf("w") >= 0) { n.width = Math.max(minW, r.width - dx); n.left = r.left + r.width - n.width; }
+        if (ed.indexOf("n") >= 0) { n.height = Math.max(minH, r.height - dy); n.top = Math.max(area().top, r.top + r.height - n.height); n.height = r.top + r.height - n.top; }
+        self.place(n);
+      }, function () { self.resizing = false; });
+    });
+    // 三个灯
+    this.bar.addEventListener("click", function (e) {
+      var act = e.target.dataset && e.target.dataset.act;
+      if (act === "full") return self.state === "full" ? self.exitFull() : self.enterFull();
+      if (act === "min" || act === "close") self.hide(act === "min" ? "min" : "closed");
+    });
+  }
+  Win.prototype.rect = function () { var el = this.el; return { left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight }; };
+  Win.prototype.place = function (r, animate) {
+    var s = this.el.style;
+    this.el.classList.toggle("anim", !!animate);
+    s.left = r.left + "px";
+    s.top = r.top + "px";
+    s.width = r.width + "px";
+    s.height = r.height + "px";
+  };
+  Win.prototype.drag = function (e, target, move, end) {
+    this.el.classList.remove("anim");
+    target.setPointerCapture(e.pointerId);
     function up() {
-      bar.removeEventListener("pointermove", move);
-      bar.removeEventListener("pointerup", up);
+      target.removeEventListener("pointermove", move);
+      target.removeEventListener("pointerup", up);
+      if (end) end();
     }
-    bar.addEventListener("pointermove", move);
-    bar.addEventListener("pointerup", up);
-  });
-
+    target.addEventListener("pointermove", move);
+    target.addEventListener("pointerup", up);
+  };
+  Win.prototype.front = function () {
+    Object.keys(apps).forEach(function (k) { apps[k].el.classList.remove("front"); });
+    this.el.classList.add("front");
+    $("appname").textContent = this.name;
+  };
   // 缩放（双击标题栏）：铺满菜单栏与 Dock 之间，再来一次还原
-  function zoom() {
+  Win.prototype.zoom = function () {
     if (mobile()) return;
-    if (state === "zoom") { state = "normal"; return place(saved || initial(), true); }
-    saved = rect();
-    state = "zoom";
+    if (this.state === "zoom") { this.state = "normal"; return this.place(this.saved || this.initial(), true); }
+    this.saved = this.rect();
+    this.state = "zoom";
     var a = area();
-    place({ left: 0, top: a.top, width: a.width, height: a.height + 8 }, true);
-  }
-  bar.addEventListener("dblclick", function (e) { if (!e.target.closest("i, button")) zoom(); });
-
+    this.place({ left: 0, top: a.top, width: a.width, height: a.height + 8 }, true);
+  };
   // 全屏（绿灯）：菜单栏、Dock 让开，窗口铺满整个屏幕；浏览器支持时顺带进真正的全屏
-  function enterFull() {
-    if (state !== "full") saved = state === "zoom" ? saved : rect();
-    state = "full";
+  Win.prototype.enterFull = function () {
+    if (this.state !== "zoom") this.saved = this.rect();
+    this.state = "full";
     desk.classList.add("full");
-    place({ left: 0, top: 0, width: window.innerWidth, height: window.innerHeight }, true);
+    this.place({ left: 0, top: 0, width: window.innerWidth, height: window.innerHeight }, true);
     if (document.documentElement.requestFullscreen && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(function () {});
-  }
-  function exitFull() {
-    if (state !== "full") return;
-    state = "normal";
+  };
+  Win.prototype.exitFull = function () {
+    if (this.state !== "full") return;
+    this.state = "normal";
     desk.classList.remove("full");
-    place(saved || initial(), true);
+    this.place(this.saved || this.initial(), true);
     if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
-  }
-  document.addEventListener("fullscreenchange", function () { if (!document.fullscreenElement) exitFull(); });
+  };
+  Win.prototype.hide = function (how) {
+    if (this.state === "full") this.exitFull();
+    this.el.classList.add("anim", how);
+    this.state = how;
+    var dockApp = dock.querySelector('[data-app="' + this.el.id + '"]');
+    if (how === "closed" && this.el.id !== "win" && dockApp) dockApp.classList.remove("running");
+  };
+  Win.prototype.show = function () {
+    var el = this.el, dockApp = dock.querySelector('[data-app="' + el.id + '"]');
+    if (this.state === "closed") this.place(this.initial());
+    void el.offsetWidth;
+    el.classList.add("anim");
+    el.classList.remove("min", "closed");
+    this.state = "normal";
+    if (dockApp) dockApp.classList.add("running");
+    this.front();
+  };
+  document.addEventListener("fullscreenchange", function () { if (!document.fullscreenElement) Object.keys(apps).forEach(function (k) { apps[k].exitFull(); }); });
 
-  // 三个灯
-  bar.addEventListener("click", function (e) {
-    var act = e.target.dataset && e.target.dataset.act;
-    if (!act) return;
-    if (act === "full") return state === "full" ? exitFull() : enterFull();
-    if (act === "min" || act === "close") {
-      if (state === "full") exitFull();
-      win.classList.add("anim", act === "min" ? "min" : "closed");
-      state = act === "min" ? "min" : "closed";
-    }
+  var term = new Win($("win"), "终端", function () {
+    var a = area(), w = Math.min(1000, a.width - 80);
+    return { left: Math.round((a.width - w) / 2), top: a.top + 14, width: w, height: a.height - 28 };
   });
-  // Dock 上的终端：收起 / 关掉的窗口点一下回来，开着就跳一下
-  dockTerm.addEventListener("click", function () {
-    if (state === "min" || state === "closed") {
-      win.classList.add("anim");
-      win.classList.remove("min", "closed");
-      if (state === "closed") place(initial());
-      state = "normal";
-      return;
-    }
-    dockTerm.classList.remove("bounce");
-    void dockTerm.offsetWidth;
-    dockTerm.classList.add("bounce");
+  var settingsWin = new Win($("settings"), "系统设置", function () {
+    var a = area(), w = Math.min(520, a.width - 40), h = Math.min(520, a.height - 40);
+    return { left: Math.round(a.width - w - 60), top: a.top + 60, width: w, height: h };
+  });
+  term.front();
+
+  // Dock：开着的 App 点一下到最前（没开 / 收起的打开），终端开着就跳一下
+  dock.addEventListener("click", function (e) {
+    var a = e.target.closest("[data-app]");
+    if (!a) return;
+    var w = apps[a.dataset.app];
+    if (w.state === "min" || w.state === "closed") return w.show();
+    w.front();
+    a.classList.remove("bounce");
+    void a.offsetWidth;
+    a.classList.add("bounce");
   });
 
   // 浏览器窗口变了：全屏 / 缩放状态跟着铺满，普通状态保证窗口不跑出屏幕
   window.addEventListener("resize", function () {
     if (mobile()) return;
-    if (state === "full") return place({ left: 0, top: 0, width: window.innerWidth, height: window.innerHeight });
-    if (state === "zoom") { var a = area(); return place({ left: 0, top: a.top, width: a.width, height: a.height + 8 }); }
-    var r = rect(), ar = area();
-    if (!win.style.left) return place(initial());
-    place({ left: Math.max(0, Math.min(r.left, ar.width - Math.min(r.width, ar.width))), top: Math.max(ar.top, r.top),
-      width: Math.min(r.width, ar.width), height: Math.min(r.height, window.innerHeight - ar.top) });
+    applyWall();
+    Object.keys(apps).forEach(function (k) {
+      var w = apps[k], a = area();
+      if (w.state === "closed") return;
+      if (w.state === "full") return w.place({ left: 0, top: 0, width: window.innerWidth, height: window.innerHeight });
+      if (w.state === "zoom") return w.place({ left: 0, top: a.top, width: a.width, height: a.height + 8 });
+      if (!w.el.style.left) return w.place(w.initial());
+      var r = w.rect();
+      w.place({ left: Math.max(0, Math.min(r.left, a.width - Math.min(r.width, a.width))), top: Math.max(a.top, r.top),
+        width: Math.min(r.width, a.width), height: Math.min(r.height, window.innerHeight - a.top) });
+    });
   });
+
+  // ---- 设置 App ----
+  var pane = $("settings");
+  function syncSettings() {
+    var mode = localStorage.getItem("tsu-theme") || "auto";
+    pane.querySelectorAll('[data-set="theme"] button').forEach(function (b) { b.classList.toggle("on", b.dataset.v === mode); });
+    pane.querySelectorAll('[data-set="wall"] button').forEach(function (b) { b.classList.toggle("on", b.dataset.v === prefs.wall); });
+    pane.querySelector('[data-set="motion"]').checked = prefs.motion;
+    pane.querySelector('[data-set="motion"]').disabled = prefs.wall !== "tahoe";
+    var font = localStorage.getItem("tsu-font") || 14, tps = window.TSU_APP ? window.TSU_APP.tps : 80;
+    pane.querySelector('[data-set="font"]').value = font;
+    pane.querySelector('[data-out="font"]').textContent = font + " px";
+    pane.querySelector('[data-set="tps"]').value = tps;
+    pane.querySelector('[data-out="tps"]').textContent = tps + " tokens/s";
+  }
+  pane.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-v]");
+    if (!b) return;
+    var set = b.parentElement.dataset.set;
+    if (set === "theme") window.TSU_APP.setTheme(b.dataset.v);
+    if (set === "wall") { prefs.wall = b.dataset.v; localStorage.setItem("tsu-wall", prefs.wall); applyWall(); }
+    syncSettings();
+  });
+  pane.addEventListener("input", function (e) {
+    var set = e.target.dataset.set;
+    if (set === "font") window.TSU_APP.setFont(+e.target.value);
+    if (set === "tps") window.TSU_APP.setTps(+e.target.value);
+    if (set === "motion") { prefs.motion = e.target.checked; localStorage.setItem("tsu-motion", prefs.motion ? "on" : "off"); applyWall(); }
+    syncSettings();
+  });
+  document.addEventListener("tsu-theme", syncSettings);
+  syncSettings();
 })();

@@ -61,14 +61,30 @@ const page = `<!DOCTYPE html>
 </head>
 <body>
 <div id="desktop">
-<div id="menubar"><span class="apple"></span><b>终端</b><span>Shell</span><span>编辑</span><span>显示</span><span>窗口</span><span>帮助</span><span class="sp"></span><span id="clock"></span></div>
+<video id="wall" muted loop playsinline preload="none"></video>
+<div id="menubar"><span class="apple"></span><b id="appname">终端</b><span>Shell</span><span>编辑</span><span>显示</span><span>窗口</span><span>帮助</span><span class="sp"></span><span id="clock"></span><i id="notch"></i></div>
 <div class="win" id="win">
-  <div class="bar" id="bar"><i data-act="close" title="关闭"></i><i data-act="min" title="最小化"></i><i data-act="full" title="全屏"></i><span>claude — terminal-style-ui</span><button id="toggle" title="切换深色 / 浅色">☾</button></div>
-  <div id="screen"><div id="page"><div id="sel"></div><pre id="term" class="terminal-style-ui"><span id="out"></span></pre></div></div>
+  <div class="bar"><i data-act="close" title="关闭"></i><i data-act="min" title="最小化"></i><i data-act="full" title="全屏"></i><span>claude — terminal-style-ui</span><button id="toggle" title="切换深色 / 浅色">☾</button></div>
+  <div id="screen"><div id="topgap"></div><div id="page"><pre id="term" class="terminal-style-ui"><div id="sel"></div><span id="out"></span></pre></div></div>
+  <pre id="jump" class="terminal-style-ui">Jump to bottom (click) ↓</pre>
   <pre id="foot" class="terminal-style-ui"><span id="input"></span></pre>
 </div>
+<div class="win closed" id="settings">
+  <div class="bar"><i data-act="close" title="关闭"></i><i data-act="min" title="最小化"></i><i class="off"></i><span>设置</span></div>
+  <div class="pane">
+    <section><h3>外观</h3><div class="seg" data-set="theme"><button data-v="auto">自动</button><button data-v="light">浅色</button><button data-v="dark">深色</button></div></section>
+    <section><h3>墙纸</h3><div class="walls" data-set="wall">
+      <button data-v="tahoe"><img src="tahoe-day.jpg" alt=""><span>太浩湖</span></button>
+      <button data-v="lake"><img src="lake-day.jpg" alt=""><span>The Lake</span></button>
+    </div><label class="row"><input type="checkbox" data-set="motion"> 动态墙纸（太浩湖航拍）</label></section>
+    <section><h3>文字大小</h3><div class="row"><input type="range" min="11" max="18" step="1" data-set="font"><output data-out="font"></output></div></section>
+    <section><h3>生成速度</h3><div class="row"><input type="range" min="20" max="240" step="10" data-set="tps"><output data-out="tps"></output></div>
+      <p class="note">模拟 Claude 回答时每秒输出的 token 数。</p></section>
+  </div>
+</div>
 <div id="dock">
-  <a class="app running" id="dock-term" title="终端"><span class="ico ico-term">&gt;_</span></a>
+  <a class="app running" data-app="win" title="终端"><span class="ico ico-term">&gt;_</span></a>
+  <a class="app" data-app="settings" title="系统设置"><span class="ico ico-gear">⚙︎</span></a>
   <a class="app" href="https://github.com/ApolloZhangOnGithub/terminal-style-ui" target="_blank" rel="noopener" title="terminal-style-ui（GitHub）"><span class="ico ico-folder"></span></a>
   <a class="app" href="https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases" target="_blank" rel="noopener" title="下载（Releases）"><span class="ico ico-box">↓</span></a>
 </div>

@@ -2,9 +2,10 @@
 :root { color-scheme: dark light; }
 html, body { margin: 0; height: 100%; }
 body { overflow: hidden; background: #1a1446; font: 13px -apple-system, "PingFang SC", sans-serif; }
-/* 桌面：The Lake（macOS 动态壁纸的白天 / 夜晚两帧） */
-#desktop { position: fixed; inset: 0; background: url(lake-night.jpg) center / cover; }
-html.light #desktop { background-image: url(lake-day.jpg); }
+/* 桌面墙纸：太浩湖（航拍：白天 / 黄昏，可动）或 The Lake（白天 / 夜晚两帧）；desk.js 按设置与深浅切换 */
+#desktop { position: fixed; inset: 0; background: #1a1446 center / cover; }
+#wall { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.6s; }
+#wall.on { opacity: 1; }
 /* 顶部菜单栏 */
 #menubar { position: absolute; top: 0; left: 0; right: 0; height: 26px; display: flex; align-items: center; gap: 18px; padding: 0 14px;
   color: #fff; text-shadow: 0 0 6px rgba(0, 0, 0, 0.35); background: rgba(20, 20, 40, 0.18); backdrop-filter: blur(20px) saturate(1.6);
@@ -29,7 +30,7 @@ html.light #dock .app.running::after { background: rgba(0, 0, 0, 0.6); }
 .ico-box { background: linear-gradient(#f3f3f3, #cfcfcf); color: #2f7de1; font: bold 24px -apple-system, sans-serif; }
 /* 窗口：可拖动（标题栏）、可拉大小（右下角）、双击标题栏 / 绿灯缩放；desk.js 管位置 */
 .win {
-  position: absolute; display: flex; flex-direction: column; min-width: 360px; min-height: 240px; resize: both;
+  position: absolute; display: flex; flex-direction: column; min-width: 360px; min-height: 240px;
   border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 22px 70px rgba(0, 0, 0, 0.55), 0 0 0 0.5px rgba(255, 255, 255, 0.18);
   transform-origin: 50% 100%;
 }
@@ -38,7 +39,7 @@ html.light #dock .app.running::after { background: rgba(0, 0, 0, 0.6); }
 .win.closed { transform: scale(0.96); opacity: 0; pointer-events: none; }
 #desktop.full #menubar { transform: translateY(-100%); }
 #desktop.full #dock { transform: translate(-50%, 140%); }
-#desktop.full .win { border-radius: 0; }
+#desktop.full #win { border-radius: 0; }
 html.light .win { background: #fff; box-shadow: 0 22px 70px rgba(30, 40, 90, 0.35), 0 0 0 0.5px rgba(0, 0, 0, 0.15); }
 .bar {
   flex: none; height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 12px; position: relative; cursor: default;
@@ -51,7 +52,17 @@ html.light .bar { background: #ececec; border-bottom-color: #d4d4d4; color: #666
 .bar span { position: absolute; left: 0; right: 0; text-align: center; pointer-events: none; }
 #toggle { margin-left: auto; position: relative; border: 0; background: none; color: inherit; font-size: 14px; cursor: pointer; padding: 2px 4px; }
 /* 全屏模式（同 Claude Code）：对话在屏幕里滚动，输入框和状态行固定在窗口底部；屏幕：窗口里自己滚动，不显示滚动条（同终端） */
-#screen { flex: 1; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; }
+/* 滚到头不回弹（Safari 的橡皮筋会破坏终端的沉浸感） */
+#screen { flex: 1; overflow-y: auto; scrollbar-width: none; overscroll-behavior: none; position: relative; }
+html, body { overscroll-behavior: none; }
+/* 往回翻时顶上空一行（同 Claude Code 全屏模式） */
+#topgap { position: sticky; top: 0; z-index: 3; visibility: hidden; background: #000; }
+html.light #topgap { background: #fff; }
+#topgap.on { visibility: visible; }
+/* Jump to bottom：往回翻时浮在对话区底部 */
+#jump { position: absolute; left: 2ch; bottom: 0; z-index: 4; margin: 0; padding: 0 1ch; display: none; cursor: pointer; background: #3a3a3a; color: #eee; --ttu-font-size: 14px; }
+#jump.ttu-light { background: #dcdcdc; color: #111; }
+#jump.on { display: block; }
 #screen::-webkit-scrollbar { display: none; }
 #page { position: relative; isolation: isolate; } /* 自己成一个层叠上下文：选区层（z-index -1）垫在文字下、窗口底色之上 */
 #term, #foot { --ttu-font-size: 14px; padding: 0 2ch; overflow: visible; background: transparent; position: relative; z-index: 0; }
@@ -60,10 +71,13 @@ html.light .bar { background: #ececec; border-bottom-color: #d4d4d4; color: #666
 /* 块：图片、用户的话（灰底铺满）——高度都是整行，整屏仍是一张行格 */
 #term .blk, #term .fig, #term .ask { display: block; }
 #term .fig { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-#term .fig img { display: block; border-radius: 6px; cursor: zoom-in; }
-#term .ask { background: #373737; margin: 0 -2ch; padding: 0 2ch; }
-html.light #term .ask { background: #ececec; }
-#foot { flex: none; cursor: text; padding-bottom: 6px; }
+#term .fig img { display: block; border-radius: 6px; cursor: zoom-in; background: #1e1e1e; }
+html.light #term .fig img { background: #eee; }
+/* 用户的话的灰底画在最底层（z-index -2），选区（-1）在它之上、文字之下——选中时不会被灰底盖住 */
+#term .ask { position: relative; margin: 0 -2ch; padding: 0 2ch; }
+#term .ask::before { content: ""; position: absolute; inset: 0; z-index: -2; background: #373737; }
+html.light #term .ask::before { background: #ececec; }
+#foot { flex: none; cursor: text; padding-bottom: 8px; position: relative; }
 #foot .hint { color: #777; }
 #foot .hint a { color: #999; text-decoration: underline; text-decoration-color: #555; cursor: pointer; }
 html.light #foot .hint { color: #888; }
@@ -71,13 +85,69 @@ html.light #foot .hint a { color: #666; }
 /* 选区自己画（同 iTerm：浅蓝底、黑字），垫在文字之下；制表符的透明字形选中后仍透明 */
 #term::selection, #term ::selection { background: transparent; color: #000; }
 #term .ttu-box::selection { color: transparent; -webkit-text-fill-color: transparent; }
-#sel { position: absolute; left: 0; top: 0; z-index: -1; pointer-events: none; }
+#sel { position: absolute; left: 0; top: 0; z-index: -1; pointer-events: none; user-select: none; -webkit-user-select: none; } /* 在 #term 里：与文字、灰底同一层叠上下文 */
 #sel > div { position: absolute; background: #b5d5ff; }
 .noscript { position: fixed; bottom: 20px; color: #ddd; font: 14px sans-serif; }
 /* 手机：窗口铺满，没有桌面、菜单栏和 Dock */
 @media (max-width: 600px) {
-  #menubar, #dock, .bar i { display: none; }
+  #menubar, #dock, .bar i, #settings { display: none; }
   .win { inset: 0; width: auto !important; height: auto !important; left: 0 !important; top: 0 !important; border-radius: 0; box-shadow: none; resize: none; min-width: 0; }
   #term, #foot { --ttu-font-size: 12px; padding: 0 1ch; }
   #term .ask { margin: 0 -1ch; padding: 0 1ch; }
+}
+
+/* 窗口边缘可拉大小：desk.js 按指针位置换光标 */
+.win.rs-n, .win.rs-s { cursor: ns-resize; }
+.win.rs-e, .win.rs-w { cursor: ew-resize; }
+.win.rs-ne, .win.rs-sw { cursor: nesw-resize; }
+.win.rs-nw, .win.rs-se { cursor: nwse-resize; }
+.win.front { z-index: 2; }
+.bar i.off { background: #9a9a9a !important; opacity: 0.5; cursor: default; }
+/* 设置 App：macOS 设置式的面板（不是终端） */
+#settings { background: #f5f5f7; color: #1d1d1f; min-width: 380px; }
+html:not(.light) #settings { background: #1e1e20; color: #eee; }
+#settings .pane { flex: 1; overflow: auto; padding: 8px 22px 18px; font: 13px -apple-system, "PingFang SC", sans-serif; }
+#settings h3 { font-size: 12px; font-weight: 600; color: #888; margin: 16px 0 8px; }
+#settings .seg { display: inline-flex; border-radius: 7px; overflow: hidden; border: 1px solid rgba(127, 127, 127, 0.35); }
+#settings .seg button { border: 0; padding: 5px 16px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+#settings .seg button.on { background: #0a84ff; color: #fff; }
+#settings .walls { display: flex; gap: 12px; }
+#settings .walls button { border: 0; padding: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-align: center; }
+#settings .walls img { display: block; width: 132px; height: 82px; object-fit: cover; border-radius: 7px; border: 3px solid transparent; }
+#settings .walls button.on img { border-color: #0a84ff; }
+#settings .walls span { display: block; margin-top: 4px; font-size: 12px; }
+#settings .row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+#settings input[type=range] { flex: 1; max-width: 240px; }
+#settings output { min-width: 90px; color: #888; font-variant-numeric: tabular-nums; }
+#settings .note { color: #888; font-size: 12px; margin: 6px 0 0; }
+.ico-gear { background: linear-gradient(#8e8e93, #5a5a5f); color: #eee; font-size: 30px; }
+/* 连续圆角（同 macOS 的“自然圆角”，squircle）：支持 corner-shape 的浏览器用真正的超椭圆，其余退回普通圆角 */
+.win { border-radius: 16px; }
+#dock { border-radius: 24px; }
+#dock .ico { border-radius: 12px; }
+#term .fig img, #settings .walls img { border-radius: 8px; }
+@supports (corner-shape: squircle) {
+  .win { border-radius: 26px; corner-shape: squircle; }
+  #dock { border-radius: 36px; corner-shape: squircle; }
+  #dock .ico { border-radius: 22px; corner-shape: squircle; }
+  #term .fig img, #settings .walls img { border-radius: 14px; corner-shape: squircle; }
+}
+#desktop.full #win { border-radius: 0; }
+/* 三个灯：指针移到灯上时显出 × − 和全屏箭头（同 macOS） */
+.bar i { display: flex; align-items: center; justify-content: center; font: 700 9px/1 -apple-system, sans-serif; font-style: normal; color: transparent; }
+.bar:hover i { color: rgba(0, 0, 0, 0.55); }
+.bar i[data-act="close"]::after { content: "×"; font-size: 11px; margin-top: -1px; }
+.bar i[data-act="min"]::after { content: "−"; font-size: 11px; margin-top: -1px; }
+.bar i[data-act="full"]::after { content: ""; width: 6px; height: 6px; background: linear-gradient(135deg, currentColor 0 40%, transparent 40% 60%, currentColor 60%); clip-path: polygon(0 0, 70% 0, 0 70%, 30% 100%, 100% 100%, 100% 30%); }
+.bar i.off::after { content: none; }
+/* 刘海：菜单栏正中一块黑，下边两角圆（同带刘海的 MacBook）；菜单栏也随之加高 */
+#menubar { height: 32px; }
+#notch { position: absolute; left: 50%; top: 0; width: 200px; height: 32px; margin-left: -100px; background: #000; border-radius: 0 0 12px 12px; pointer-events: none; }
+@supports (corner-shape: squircle) { #notch { border-radius: 0 0 20px 20px; corner-shape: squircle; } }
+#term, #foot, #jump { margin: 0; }
+/* 手机（放在最后，压过上面的圆角与三个灯）：窗口铺满、方角、没有灯 */
+@media (max-width: 600px) {
+  .win, #win { border-radius: 0 !important; corner-shape: round; }
+  .bar i { display: none; }
+  #jump { left: 1ch; }
 }
