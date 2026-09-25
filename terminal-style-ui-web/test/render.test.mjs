@@ -69,7 +69,11 @@ test("打包版（纯 JavaScript 环境）与 Node 版逐字节一致", async ()
     for (const theme of ["dark", "light"]) {
       const bundled = context.TTU.renderFile(name, text, { width: 90, theme }).html;
       const node = (await lib.renderFileHtml(name, text, { width: 90, theme, paddingX: 0 })).html;
-      assert.equal(bundled, node, `${name} ${theme}`);
+      if (bundled !== node) {
+        let i = 0;
+        while (bundled[i] === node[i]) i++;
+        assert.fail(`${name} ${theme}：第 ${i} 个字符起不同\n  打包版：${JSON.stringify(bundled.slice(i - 60, i + 80))}\n  Node 版：${JSON.stringify(node.slice(i - 60, i + 80))}`);
+      }
     }
   }
 });
