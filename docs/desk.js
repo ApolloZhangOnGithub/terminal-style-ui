@@ -8,13 +8,14 @@
   var mobile = function () { return matchMedia("(max-width: 600px)").matches; };
   var EDGE = 6; // 边缘多宽算“拉大小”
 
-  // ---- 菜单栏时钟：同 macOS 中文格式「9月25日 周五 22:50」----
+  // ---- 菜单栏时钟：同 macOS 中文格式「9月25日 周五  22:50:07」（显示秒）----
   function tick() {
     var d = new Date();
-    clock.textContent = (d.getMonth() + 1) + "月" + d.getDate() + "日 周" + "日一二三四五六"[d.getDay()] + " " + d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+    var two = function (n) { return String(n).padStart(2, "0"); };
+    clock.textContent = (d.getMonth() + 1) + "月" + d.getDate() + "日 周" + "日一二三四五六"[d.getDay()] + "\u2002" + d.getHours() + ":" + two(d.getMinutes()) + ":" + two(d.getSeconds());
   }
   tick();
-  setInterval(tick, 10000);
+  setTimeout(function () { tick(); setInterval(tick, 1000); }, 1000 - Date.now() % 1000); // 对齐到整秒
 
   // ---- 墙纸：太浩湖（白天 / 黄昏航拍，可动）或 The Lake；跟着深浅走 ----
   var prefs = { wall: localStorage.getItem("tsu-wall") || "tahoe", motion: localStorage.getItem("tsu-motion") !== "off" };
@@ -60,11 +61,12 @@
     this.bar.addEventListener("pointerdown", function (e) {
       if (mobile() || e.button !== 0 || e.target.closest("i, button") || self.state === "full" || self.edge) return;
       e.preventDefault(); // 按下标题栏不清掉对话里的选区
-      if (self.state === "zoom") self.state = "normal";
       // 拖动只改 transform（交给合成器，跟屏幕刷新率走，不重排、不重绘窗口内容），松手再落到 left / top
       var r = self.rect(), x0 = e.clientX, y0 = e.clientY, a = area(), dx = 0, dy = 0;
       el.style.willChange = "transform";
       self.drag(e, self.bar, function (ev) {
+        if (Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) < 3) return; // 双击时的轻微抖动不算拖动
+        if (self.state === "zoom") self.state = "normal"; // 真拖动了才退出缩放（否则第二下双击会又放大一次）
         dx = Math.max(80 - r.width, Math.min(a.width - 80, r.left + ev.clientX - x0)) - r.left;
         dy = Math.max(a.top, Math.min(window.innerHeight - 60, r.top + ev.clientY - y0)) - r.top;
         el.style.transform = "translate3d(" + dx + "px," + dy + "px,0)";

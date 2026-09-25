@@ -9,7 +9,10 @@
   var TURNS = JSON.parse(document.getElementById("turns").textContent);
   var $ = function (id) { return document.getElementById(id); };
   var root = document.documentElement, screen = $("screen"), term = $("term"), foot = $("foot"), out = $("out"), input = $("input");
-  var selLayer = $("sel"), toggle = $("toggle"), jump = $("jump"), topgap = $("topgap");
+  var selLayer = $("sel"), toggle = $("toggle"), jump = $("jump"), topgap = $("topgap"), win = $("win");
+  // 两层外观（同 macOS）：系统（html.light，设置 App 管）与终端自己的（标题栏右侧按钮：跟随系统 / 浅色 / 深色）
+  var termPref = function () { return localStorage.getItem("tsu-term") || "auto"; };
+  var termLight = function () { var p = termPref(); return p === "auto" ? root.classList.contains("light") : p === "light"; };
   var touch = matchMedia("(pointer: coarse)").matches;
   var ESC = "\x1b", RESET = ESC + "[0m", BOLD = ESC + "[1m";
   var rgb = function (c) { return ESC + "[38;2;" + c + "m"; };
@@ -181,13 +184,16 @@
     return el;
   }
   function renderAll() {
-    var light = root.classList.contains("light");
+    var light = termLight();
     theme = light ? "light" : "dark";
+    win.classList.toggle("tl", light);
     DIM = rgb(light ? "130;130;130" : "120;120;120");
     term.classList.toggle("ttu-light", light);
     foot.classList.toggle("ttu-light", light);
     jump.classList.toggle("ttu-light", light);
-    toggle.textContent = light ? "☾" : "☀";
+    var pref = termPref();
+    toggle.textContent = pref === "auto" ? "◐" : pref === "light" ? "☀" : "☾";
+    toggle.title = "终端外观：" + (pref === "auto" ? "跟随系统" : pref === "light" ? "浅色" : "深色") + "（点一下切换）";
     var ch0 = chPx, w0 = termW, next = measure();
     if (next !== cols || chPx !== ch0 || termW !== w0) cache = {};
     cols = next;
@@ -394,11 +400,13 @@
     if (now) screen.scrollTop += now.getBoundingClientRect().top - y;
     onScroll();
   });
+  // 系统外观变了：桌面跟着变；终端跟随系统时一起重排
   var setTheme = function (light) { root.classList.toggle("light", light); renderAll(); document.dispatchEvent(new Event("tsu-theme")); };
   toggle.addEventListener("click", function () {
-    var light = !root.classList.contains("light");
-    localStorage.setItem("tsu-theme", light ? "light" : "dark");
-    setTheme(light);
+    var next = { auto: "light", light: "dark", dark: "auto" }[termPref()];
+    if (next === "auto") localStorage.removeItem("tsu-term");
+    else localStorage.setItem("tsu-term", next);
+    renderAll();
   });
   matchMedia("(prefers-color-scheme: light)").addEventListener("change", function (e) {
     if (!localStorage.getItem("tsu-theme")) setTheme(e.matches);

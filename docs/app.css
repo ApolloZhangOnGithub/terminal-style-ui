@@ -55,7 +55,7 @@ html.light #dock .app.running::after { background: rgba(0, 0, 0, 0.6); }
   box-shadow: 0 22px 70px rgba(0, 0, 0, 0.55); }
 html.light .win { box-shadow: 0 22px 70px rgba(30, 40, 90, 0.35); }
 .win > .body { position: absolute; left: 0; top: 0; width: 100%; height: 100%; /* 不用 inset:0：Safari 有时把它当作高度不定，flex 子项就不撑满 */ display: flex; flex-direction: column; overflow: hidden; background: #000; }
-html.light #win > .body { background: #fff; }
+#win.tl > .body { background: #fff; }
 .win.anim { transition: left 0.28s, top 0.28s, width 0.28s, height 0.28s, transform 0.35s, opacity 0.35s; }
 .win.min { transform: translateY(40vh) scale(0.05); opacity: 0; pointer-events: none; }
 .win.closed { transform: scale(0.96); opacity: 0; pointer-events: none; }
@@ -85,12 +85,12 @@ html.light .bar { background: #ececec; border-bottom-color: #d4d4d4; color: #666
 .bar i[data-act="full"]::after { content: ""; width: 8px; height: 8px; background: currentColor;
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 2h5L2 7z M10 10H5l5-5z'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 2h5L2 7z M10 10H5l5-5z'/%3E%3C/svg%3E") center / contain no-repeat; }
 
-/* ---- 终端窗口：同 Claude Code 全屏模式——对话在屏幕里滚动（不显示滚动条、滚到头不回弹），输入栏固定在底部 ---- */
+/* ---- 终端窗口（内容的深浅看 #win.tl——终端自己的外观：跟随系统 / 浅色 / 深色；标题栏跟系统走）：同 Claude Code 全屏模式——对话在屏幕里滚动（不显示滚动条、滚到头不回弹），输入栏固定在底部 ---- */
 #screen { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none; overscroll-behavior: none; position: relative; }
 #screen::-webkit-scrollbar { display: none; }
 /* 往回翻时顶上空一行 */
 #topgap { position: sticky; top: 0; z-index: 3; visibility: hidden; background: #000; }
-html.light #topgap { background: #fff; }
+#win.tl #topgap { background: #fff; }
 #topgap.on { visibility: visible; }
 /* Jump to bottom：往回翻时浮在对话区底部正中，指上去稍亮一点 */
 #jump { position: absolute; left: 50%; transform: translateX(-50%); bottom: 0; z-index: 4; margin: 0; padding: 0 1ch; display: none; cursor: pointer;
@@ -108,11 +108,11 @@ html.light #topgap { background: #fff; }
 #term .blk, #term .fig, #term .ask { display: block; }
 #term .fig { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
 #term .fig img { --r: 16px; display: block; cursor: zoom-in; background: #1e1e1e; }
-html.light #term .fig img { background: #eee; }
+#win.tl #term .fig img { background: #eee; }
 /* 用户的话：灰底画在最底层（z-index -2），选区（-1）在它之上、文字之下——选中时不会被灰底盖住 */
 #term .ask { position: relative; margin: 0 -2ch; padding: 0 2ch; }
 #term .ask::before { content: ""; position: absolute; inset: 0; z-index: -2; background: #373737; }
-html.light #term .ask::before { background: #ececec; }
+#win.tl #term .ask::before { background: #ececec; }
 /* 选区自己画（同 iTerm：浅蓝底、黑字）：#sel 在 #term 里，与文字、灰底同一层叠上下文；制表符的透明字形选中后仍透明 */
 #term::selection, #term ::selection { background: transparent; color: #000; }
 #term .ttu-box::selection { color: transparent; -webkit-text-fill-color: transparent; }
@@ -149,3 +149,12 @@ html:not(.light) #settings > .body { background: #1e1e20; }
   #term, #foot { --ttu-font-size: 12px; padding: 0 1ch; }
   #term .ask { margin: 0 -1ch; padding: 0 1ch; }
 }
+/* 菜单栏右侧：输入法、Wi‑Fi、电池、控制中心（SVG，颜色跟文字走）与时钟（等宽数字，秒不跳位） */
+#menubar .tray { display: flex; align-items: center; gap: 16px; }
+#menubar .tray svg { display: block; filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.25)); }
+html.light #menubar .tray svg { filter: none; }
+#menubar .ime { font: 600 11px/16px -apple-system, "PingFang SC", sans-serif; padding: 0 3px; border-radius: 4px; background: #fff; color: #333; text-shadow: none; }
+html.light #menubar .ime { background: #1d1d1f; color: #fff; }
+#menubar .bolt { fill: #333; }
+html.light #menubar .bolt { fill: #fff; }
+#clock { font-variant-numeric: tabular-nums; }
