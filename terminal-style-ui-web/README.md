@@ -113,7 +113,7 @@ tmd --color always x.md > x.ans   # 被管道接走时默认不带颜色，alway
 
 ## 依赖
 
-- **运行时**：无。上游依赖（pi-tui 定制版、theme.js 配色、cli-highlight + highlight.js、chalk）已打包在 `vendor/`（随仓库提交），`npm run build` 据此生成 `dist/runtime.mjs`（Node）与 `dist/ttu-core.js`（JavaScriptCore / 浏览器）。只有升级上游时才需要 `npm run vendor`（要一份含定制版 pi-tui 的 runtime）。测试：`npm test`
+- **运行时**：无，依赖都已打包。渲染核心（定制版 pi-tui，MIT）的源码在 `upstream/`，第三方依赖由 `package.json` 锁定版本；`npm run vendor` 由源码生成 `vendor/`，`npm run build` 生成 `dist/`，`npm test` 跑单元测试
 - **浏览器**：无依赖（纯 DOM + CSS）；需支持 `lh` 单位、CSS `round()` 与 `@property`（Chrome 125+ / Safari 16.4+）；字体需 Monaco + PingFang SC（macOS 自带）
 
 ## 支持的 Markdown 元素

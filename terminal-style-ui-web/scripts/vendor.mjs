@@ -1,19 +1,26 @@
-// vendor.mjs —— 从定制版 runtime 生成 vendor/：node scripts/vendor.mjs [runtimePath]（npm run vendor）
-// 只在升级上游依赖时跑，需要一份含定制版 pi-tui 的 runtime（参数 / TSU_RUNTIME / ~/.local/lib/terminal-style-ui/runtime）。
-// 产物提交进仓库，npm run build 只用它们，不需要 runtime：
+// vendor.mjs —— 生成 vendor/（上游依赖的打包产物）：npm run vendor
+// 默认从仓库里的 upstream/（定制版 pi-tui / pi-coding-agent 源码，scripts/import-upstream.mjs 导入）+ node_modules（第三方依赖，
+// package.json 锁定版本）打包——不依赖任何本机环境，CI 据此验证提交的 vendor/ 可以复现。
+// 给参数 / TSU_RUNTIME 时改从那份 runtime 的 node_modules 打包（导入 / 升级 upstream/ 时用）。
+// 产物提交进仓库，npm run build 只用它们：
 //   vendor/upstream-jsc.mjs  JavaScriptCore / 浏览器用：Node 内置模块换成替身（fs 只认内联的 dark / light 主题与 package.json）
 //   vendor/upstream-node.mjs Node 用：真 Node 内置模块；theme.js 的 config.js 换成 config-shim.js
 //   vendor/themes/*.json     内置主题
 import * as esbuild from "esbuild";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // 解析成真实路径：默认位置是指向某个 node_modules 的软链，按软链名查依赖会找不到
-const runtime = fs.realpathSync(process.argv[2] || process.env.TSU_RUNTIME || path.join(os.homedir(), ".local/lib/terminal-style-ui/runtime"));
-const themeDir = path.join(runtime, "@earendil-works/pi-coding-agent/dist/modes/interactive/theme");
+// 解析成真实路径：runtime 常是指向某个 node_modules 的软链，按软链名查依赖会找不到
+const runtimeArg = process.argv[2] || process.env.TSU_RUNTIME;
+const runtime = runtimeArg ? fs.realpathSync(runtimeArg) : null;
+const upstream = path.join(root, "upstream");
+// 上游模块的实际路径：@earendil-works/* 取自 upstream/（定制版源码），其余（cli-highlight、chalk、highlight.js…）取自 node_modules
+const rt = (p) => (runtime ? path.join(runtime, p) : path.join(p.startsWith("@earendil-works/") ? upstream : path.join(root, "node_modules"), p));
+const fallbackDir = runtime ?? root; // 源码里的裸模块名（marked、typebox…）找不到时从这里按 node_modules 规则再找
+const themeDir = rt("@earendil-works/pi-coding-agent/dist/modes/interactive/theme");
 const themes = Object.fromEntries(["dark.json", "light.json"].map((n) => [n, fs.readFileSync(path.join(themeDir, n), "utf8")]));
 
 const NODE_BUILTINS = /^(?:node:)?(?:fs|fs\/promises|path|os|child_process|url|tty|util|crypto|process|events|stream|module|worker_threads|assert|buffer|readline|net|http|https|zlib|perf_hooks|string_decoder|v8|vm)$/;
@@ -49,7 +56,8 @@ module.exports = api;
 `;
 
 
-await esbuild.build({
+const inputs = []; // 打包实际用到的输入文件（TSU_VENDOR_INPUTS=文件 时写出，整理 upstream/ 源码用）
+inputs.push(...Object.keys((await esbuild.build({
   entryPoints: [path.join(root, "scripts/upstream-jsc-entry.js")],
   outfile: path.join(root, "vendor/upstream-jsc.mjs"),
   bundle: true,
@@ -60,32 +68,33 @@ await esbuild.build({
   legalComments: "eof",
   define: { "import.meta.url": '"file:///ttu-core/"' },
   logLevel: "warning",
+  metafile: true,
   plugins: [{
     name: "ttu-runtime",
     setup(b) {
-      b.onResolve({ filter: /^RT\// }, (a) => ({ path: path.join(runtime, a.path.slice(3)) }));
+      b.onResolve({ filter: /^RT\// }, (a) => ({ path: rt(a.path.slice(3)) }));
       // theme.js 从 pi-tui 入口只取 getCapabilities：指到同一份 terminal-image.js（与 Markdown 共用能力状态），不拉进整个 TUI
-      b.onResolve({ filter: /^@earendil-works\/pi-tui$/ }, () => ({ path: path.join(runtime, "@earendil-works/pi-tui/dist/terminal-image.js") }));
+      b.onResolve({ filter: /^@earendil-works\/pi-tui$/ }, () => ({ path: rt("@earendil-works/pi-tui/dist/terminal-image.js") }));
       // chalk 只留一份（entry 里设了 level = 3）：theme.js 等处的裸 "chalk" 若解析到另一份，浏览器版等级为 0，粗体 / 颜色全丢
-      b.onResolve({ filter: /^chalk$/ }, () => ({ path: path.join(runtime, "chalk/source/index.js") }));
+      b.onResolve({ filter: /^chalk$/ }, () => ({ path: rt("chalk/source/index.js") }));
       b.onResolve({ filter: NODE_BUILTINS }, (a) => ({ path: a.path, namespace: "node-stub" }));
       b.onLoad({ filter: /.*/, namespace: "node-stub" }, () => ({ contents: stub, loader: "js" }));
-      // 其余裸模块名（marked、typebox、highlight.js…）按 runtime 的 node_modules 解析
+      // 其余裸模块名（marked、typebox、highlight.js…）：先按所在位置解析，找不到再从 fallbackDir 找
       b.onResolve({ filter: /^[^./]/ }, async (a) => {
         if (a.pluginData === "rt") return undefined;
         const r = await b.resolve(a.path, { kind: a.kind, resolveDir: a.resolveDir, pluginData: "rt" });
         if (!r.errors.length) return r;
-        return b.resolve(a.path, { kind: a.kind, resolveDir: runtime, pluginData: "rt" });
+        return b.resolve(a.path, { kind: a.kind, resolveDir: fallbackDir, pluginData: "rt" });
       });
     },
   }],
-});
+})).metafile.inputs));
 
 
 // Node 侧：真 Node 内置模块照常用，只把 theme.js 引的 config.js 换成 config-shim.js（主题 JSON 在 vendor/themes/，build 拷到 dist/themes/）
 fs.mkdirSync(path.join(root, "vendor/themes"), { recursive: true });
 for (const [name, text] of Object.entries(themes)) fs.writeFileSync(path.join(root, "vendor/themes", name), text);
-await esbuild.build({
+inputs.push(...Object.keys((await esbuild.build({
   entryPoints: [path.join(root, "scripts/upstream-node-entry.js")],
   outfile: path.join(root, "vendor/upstream-node.mjs"),
   bundle: true,
@@ -97,22 +106,29 @@ await esbuild.build({
   // 打进来的 CommonJS 依赖（cli-highlight、highlight.js）里的 require 需要真的 require
   banner: { js: 'import { createRequire as __tsuCreateRequire } from "node:module"; const require = __tsuCreateRequire(import.meta.url);' },
   logLevel: "warning",
+  metafile: true,
   plugins: [{
     name: "tsu-runtime-node",
     setup(b) {
-      b.onResolve({ filter: /^RT\// }, (a) => ({ path: path.join(runtime, a.path.slice(3)) }));
+      b.onResolve({ filter: /^RT\// }, (a) => ({ path: rt(a.path.slice(3)) }));
       b.onResolve({ filter: /config\.js$/ }, (a) => (a.importer.includes("/theme/") ? { path: path.join(root, "scripts/config-shim.js") } : undefined));
+      // upstream/ 里的包名引用 pi-tui：pi-coding-agent 里的代码用它嵌套的那份，其余（pi-tui 引用自己）用顶层那份——同原 runtime 的解析结果
+      if (!runtime) b.onResolve({ filter: /^@earendil-works\/pi-tui$/ }, (a) => ({
+        path: a.importer.includes("/pi-coding-agent/")
+          ? path.join(upstream, "@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-tui/dist/index.js")
+          : path.join(upstream, "@earendil-works/pi-tui/dist/index.js"),
+      }));
       // chalk 只留一份（同 JavaScriptCore 版）：主题模块若用到另一份，色深按运行环境自行判断，干净环境里粗体 / 颜色全丢
-      b.onResolve({ filter: /^chalk$/ }, () => ({ path: path.join(runtime, "chalk/source/index.js") }));
+      b.onResolve({ filter: /^chalk$/ }, () => ({ path: rt("chalk/source/index.js") }));
       b.onResolve({ filter: /^[^./]/ }, async (a) => {
         if (a.pluginData === "rt" || a.path.startsWith("node:")) return undefined;
         const r = await b.resolve(a.path, { kind: a.kind, resolveDir: a.resolveDir, pluginData: "rt" });
         if (!r.errors.length) return r;
-        return b.resolve(a.path, { kind: a.kind, resolveDir: runtime, pluginData: "rt" });
+        return b.resolve(a.path, { kind: a.kind, resolveDir: fallbackDir, pluginData: "rt" });
       });
     },
   }],
-});
+})).metafile.inputs));
 // 上游定制版里写死的日志 / 调试目录（家目录下它自己的隐藏目录，如 ~/.<名>/agent、~/.<名>/LogData）改到 ~/.terminal-style-ui/——
 // 装了本工具的人不该多出一个无关目录。目录名从代码里认出来（homedir 旁的 "agent"、路径里的 /LogData），不写死
 for (const f of ["vendor/upstream-node.mjs", "vendor/upstream-jsc.mjs"]) {
@@ -124,3 +140,4 @@ for (const f of ["vendor/upstream-node.mjs", "vendor/upstream-jsc.mjs"]) {
   fs.writeFileSync(p, text);
 }
 for (const f of ["vendor/upstream-node.mjs", "vendor/upstream-jsc.mjs"]) console.log(`${f} ${(fs.statSync(path.join(root, f)).size / 1024).toFixed(0)} KB`);
+if (process.env.TSU_VENDOR_INPUTS) fs.writeFileSync(process.env.TSU_VENDOR_INPUTS, JSON.stringify([...new Set(inputs)], null, 1));

@@ -1,4 +1,4 @@
-# 每次推送 / PR：构建渲染库（只用仓库里的 vendor/，不需要定制版 runtime）并跑单元测试；另打一个 VSCode 插件包验证打包
+# 每次推送 / PR：由 upstream/ 源码复现 vendor/、构建渲染库、跑单元测试；另打一个 VSCode 插件包验证打包
 name: CI
 
 on:
@@ -21,6 +21,8 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
+      # 由 upstream/ 源码重新生成 vendor/，必须与提交的一致（构建可复现）
+      - run: npm run vendor && git diff --exit-code vendor/
       - run: npm run build
       - run: npm test
 

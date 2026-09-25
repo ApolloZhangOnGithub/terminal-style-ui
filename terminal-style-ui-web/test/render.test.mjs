@@ -123,14 +123,23 @@ test("缓存（块缓存 + 行缓存）不改变结果：随机编辑 60 次，�
 // ── 回归测试：大文本不自动识别语言、代码无万行悬崖、文档原样解析、聊天清洗、类型判断 ──
 
 test("纯文本 / 没写语言的代码块不触发 highlight.js 自动识别（大日志不卡）", async () => {
-  const log = Array.from({ length: 3000 }, (_, i) => `2026-09-25 12:00:${String(i % 60).padStart(2, "0")} INFO worker-${i % 7} request id=${i} is done of the job to x`).join("\n");
-  let t = performance.now();
-  const plain = await lib.renderFileAnsi("app.log", log, { width: 100 });
-  assert.ok(performance.now() - t < 3000, `3000 行日志用了 ${Math.round(performance.now() - t)}ms`);
-  assert.ok(!/\x1b\[38;2;249;38;114m(?:is|of|to)\x1b/.test(plain.ansi), "英文单词不应被染成关键字色");
-  t = performance.now();
-  await lib.renderTerminalAnsi("```\n" + log + "\n```", { width: 100 });
-  assert.ok(performance.now() - t < 3000, `没写语言的 3000 行代码块用了 ${Math.round(performance.now() - t)}ms`);
+  // 确定性检查（不看耗时，机器忙时也可靠）：数自动识别被调用了几次——应为 0。
+  // 不能用「一调用就抛错」：高亮函数外有 try/catch，抛错会被吞掉、退回纯文本，测试照样通过
+  const { hljs } = await import("../dist/runtime.mjs");
+  const original = hljs.highlightAuto;
+  let autoCalls = 0;
+  hljs.highlightAuto = (code) => { autoCalls++; return { value: "" }; };
+  try {
+    const log = Array.from({ length: 3000 }, (_, i) => `2026-09-25 12:00:${String(i % 60).padStart(2, "0")} INFO worker-${i % 7} request id=${i} is done of the job to x`).join("\n");
+    const plain = await lib.renderFileAnsi("app.log", log, { width: 100 });
+    assert.ok(!/\x1b\[38;2;249;38;114m(?:is|of|to)\x1b/.test(plain.ansi), "英文单词不应被染成关键字色");
+    await lib.renderTerminalAnsi("```\n" + log + "\n```", { width: 100, blockCache: false });
+    await lib.renderTerminalAnsi("```unknownlang\n" + log.slice(0, 2000) + "\n```", { width: 100, blockCache: false });
+    await lib.renderFileAnsi("data.csv", log.replaceAll(" ", ","), { width: 100 });
+    assert.equal(autoCalls, 0, `highlightAuto 被调用了 ${autoCalls} 次（会把 191 种语言挨个试）`);
+  } finally {
+    hljs.highlightAuto = original;
+  }
 });
 
 test("代码文件没有万行性能悬崖（行号栏自己画）", async () => {

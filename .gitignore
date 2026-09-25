@@ -5,3 +5,6 @@ build/
 *.vsix
 .DS_Store
 lib/
+# upstream/ 是定制版 pi-tui 的源码（按原包结构，文件在 dist/、node_modules/ 下）：要提交
+!terminal-style-ui-web/upstream/**/dist/
+!terminal-style-ui-web/upstream/**/node_modules/

@@ -69,7 +69,7 @@
 ## 开发
 
 - 构建与测试：`cd terminal-style-ui-web && npm ci && npm run build && npm test`——不需要任何运行时，CI 每次推送都会跑
-- 上游依赖（定制版 pi-tui、主题、高亮、chalk）打包在 `terminal-style-ui-web/vendor/`，随仓库提交；只有升级它们时才需要 `npm run vendor`（要一份定制版 runtime，位置由 `TSU_RUNTIME` 或 `~/.local/lib/terminal-style-ui/runtime` 给出）
+- 渲染核心（定制版 pi-tui / pi-coding-agent，MIT）的源码在 `terminal-style-ui-web/upstream/`；`npm run vendor` 由它生成 `vendor/`，CI 每次验证可复现
 - VSCode 插件：`cd terminal-style-ui-vscode && npm run package`；Quick Look：`cd terminal-style-ui-quicklook && ./build.sh`（需要 Xcode）
 - 配图：`media/make.sh` 一键重拍（演示文件 `media/demo.md`、`media/demo.py`，截图里不含本机路径）；`./make.sh --finder` 另拍真实的访达 + 快速查看（会临时接管访达、切换系统深浅色，拍完恢复）
 - 变更记录：[CHANGELOG.md](CHANGELOG.md)
