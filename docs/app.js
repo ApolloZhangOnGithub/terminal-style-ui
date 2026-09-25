@@ -454,8 +454,12 @@
   });
   // 系统外观变了：桌面跟着变；终端跟随系统时一起重排
   var setTheme = function (light) { root.classList.toggle("light", light); renderAll(); document.dispatchEvent(new Event("tsu-theme")); };
+  // 终端外观按钮：隔一会儿再点 = 在浅色 / 深色之间翻（把现在看到的反过来）；连续快点才一路切到「跟随系统」
+  var lastToggle = 0;
   toggle.addEventListener("click", function () {
-    var next = { auto: "light", light: "dark", dark: "auto" }[termPref()];
+    var now = Date.now(), rapid = now - lastToggle < 1200;
+    lastToggle = now;
+    var next = rapid ? { auto: "light", light: "dark", dark: "auto" }[termPref()] : termLight() ? "dark" : "light";
     if (next === "auto") localStorage.removeItem("tsu-term");
     else localStorage.setItem("tsu-term", next);
     renderAll();
