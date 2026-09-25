@@ -1,0 +1,58 @@
+/* app.css —— 博客页：桌面 + 一个终端窗口（Claude Code 会话），窗口里的排版见 terminal.css */
+:root { color-scheme: dark light; }
+html, body { margin: 0; height: 100%; }
+/* 桌面：蓝紫的湖（渐变，不用系统壁纸原图） */
+body {
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+  background: radial-gradient(120% 90% at 85% 10%, #3a4fd8 0%, transparent 55%), radial-gradient(90% 80% at 10% 90%, #5b2bb8 0%, transparent 60%),
+    linear-gradient(160deg, #0b1a5c 0%, #1a2f9c 45%, #2a1570 100%);
+}
+html.light body {
+  background: radial-gradient(120% 90% at 85% 10%, #9fb7ff 0%, transparent 55%), radial-gradient(90% 80% at 10% 90%, #d9c4ff 0%, transparent 60%),
+    linear-gradient(160deg, #cfe0ff 0%, #a9c1ff 45%, #c9b8f5 100%);
+}
+.win {
+  width: min(calc(100vw - 48px), 1000px); height: calc(100dvh - 48px); display: flex; flex-direction: column;
+  border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 22px 70px rgba(0, 0, 0, 0.55), 0 0 0 0.5px rgba(255, 255, 255, 0.18);
+}
+html.light .win { background: #fff; box-shadow: 0 22px 70px rgba(30, 40, 90, 0.35), 0 0 0 0.5px rgba(0, 0, 0, 0.15); }
+.bar {
+  flex: none; height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 12px; position: relative;
+  background: #262626; border-bottom: 1px solid #000; font: 12px -apple-system, "PingFang SC", sans-serif; color: #999; user-select: none;
+}
+html.light .bar { background: #ececec; border-bottom-color: #d4d4d4; color: #666; }
+.bar i { width: 12px; height: 12px; border-radius: 6px; background: #ff5f57; }
+.bar i:nth-child(2) { background: #febc2e; }
+.bar i:nth-child(3) { background: #28c840; }
+.bar span { position: absolute; left: 0; right: 0; text-align: center; pointer-events: none; }
+#toggle { margin-left: auto; position: relative; border: 0; background: none; color: inherit; font-size: 14px; cursor: pointer; padding: 2px 4px; }
+/* 屏幕：窗口里自己滚动，不显示滚动条（同终端） */
+#screen { flex: 1; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; }
+#screen::-webkit-scrollbar { display: none; }
+#page { position: relative; }
+#term { --ttu-font-size: 14px; padding: 0 2ch; overflow: visible; background: transparent; position: relative; z-index: 0; }
+#term a { color: inherit; text-decoration: none; }
+#term a:hover { background: rgba(127, 127, 127, 0.22); }
+/* 块：图片、用户的话（灰底铺满）——高度都是整行，整屏仍是一张行格 */
+#term .fig, #term .ask, #term .box { display: block; }
+#term .fig { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+#term .fig img { display: block; border-radius: 6px; }
+#term .ask { background: #373737; margin: 0 -2ch; padding: 0 2ch; }
+html.light #term .ask { background: #ececec; }
+#term #input { cursor: text; }
+#term .hint { color: #777; }
+#term .hint a { color: #999; text-decoration: underline; text-decoration-color: #555; cursor: pointer; }
+html.light #term .hint { color: #888; }
+html.light #term .hint a { color: #666; }
+/* 选区自己画（同 iTerm：浅蓝底、黑字），垫在文字之下；制表符的透明字形选中后仍透明 */
+#term::selection, #term ::selection { background: transparent; color: #000; }
+#term .ttu-box::selection { color: transparent; -webkit-text-fill-color: transparent; }
+#sel { position: absolute; left: 0; top: 0; z-index: -1; pointer-events: none; }
+#sel > div { position: absolute; background: #b5d5ff; }
+.noscript { position: fixed; bottom: 20px; color: #ddd; font: 14px sans-serif; }
+/* 手机：窗口铺满，没有桌面 */
+@media (max-width: 600px) {
+  .win { width: 100vw; height: 100dvh; border-radius: 0; box-shadow: none; }
+  #term { --ttu-font-size: 12px; padding: 0 1ch; }
+  #term .ask { margin: 0 -1ch; padding: 0 1ch; }
+}

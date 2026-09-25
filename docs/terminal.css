@@ -1,0 +1,47 @@
+/* terminal.css —— Terminal-Style-UI-Web 前端样式
+   配合 index.js 的 renderTerminalHtml 输出使用：把返回的 html 放进 <pre class="terminal-style-ui">（light 主题再加 ttu-light）。
+   视觉对齐目标：iTerm Dark Background（Monaco/PingFang、纯黑背景、#c7c7c7 前景、粗体提亮白）。
+   字号可调：改 --ttu-font-size 即可（格宽 1ch、行高按字号取整，自动跟随）。 */
+
+/* 格宽：在 <pre> 上按常规字重算一次 1ch，注册为长度后以绝对值继承给所有格子（格子宽 var(--ttu-cell, 1ch)）。
+   WebKit（Safari）的合成粗体把粗体字的 1ch 加宽约 0.36px，格子直接用 1ch 时粗体多的表格行会累积错位 */
+@property --ttu-cell {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+.terminal-style-ui {
+  --ttu-cell: 1ch;
+  /* 字体：Monaco 为主（iTerm 默认观感），中文回退 PingFang（观感优先） */
+  font-family: Monaco, "PingFang SC", monospace;
+  font-size: var(--ttu-font-size, 13px);
+  /* 行高：必须显式并取整到像素（13px 下为 17px，与原先 Monaco 的 normal 相同）。normal 时含中文（PingFang）的行
+     比纯 ASCII 行高 1px，行距参差 → 制表符竖线跨行断开；取整 → 横线落在整像素上。制表符格子高 1lh 依赖此值 */
+  line-height: 1.3;
+  line-height: round(nearest, 1.3em, 1px);
+  white-space: pre;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+
+  /* 配色：iTerm Dark Background 默认（背景纯黑、前景灰白、粗体提亮白由内联样式处理） */
+  color: #c7c7c7;
+  background: #000000;
+
+  /* 版面 */
+  display: block;
+  padding: 12px 16px;
+  overflow: auto;
+  tab-size: 4;
+}
+
+/* light：TUI light 同款白底深字（interactive-mode.js 的 OSC 10/11 配色）；配合 renderTerminalHtml(md, { theme: "light" }) */
+.terminal-style-ui.ttu-light {
+  color: #1a1a1a;
+  background: #ffffff;
+}
+
+/* 空格子（box-drawing 画线 span）内不需要文字修饰 */
+.terminal-style-ui span {
+  text-decoration: inherit;
+}
