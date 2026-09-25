@@ -36,7 +36,6 @@ swiftc -O -target "$TARGET" -module-name TerminalStyleUI App/main.swift -o "$APP
 codesign --force --sign "$IDENTITY" --entitlements Extension/TMDPreview.entitlements --timestamp=none "$APPEX"
 codesign --force --sign "$IDENTITY" --timestamp=none "$APP"
 codesign --verify --deep --strict "$APP"
-"/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister" -u "$APP" 2>/dev/null || true # 临时构建目录里的副本不登记
 echo "构建完成：$APP（签名：$IDENTITY）"
 
 [[ "${1:-}" == "--no-install" ]] && exit 0
@@ -53,5 +52,15 @@ ditto --noextattr --noqtn "$APP" "$DEST"
 "$LSR" -f "$DEST"
 pluginkit -a "$DEST/Contents/PlugIns/TMDPreview.appex"
 pluginkit -e use -i com.apollozhang.terminal-style-ui.preview
+# 确认扩展确实登记着：系统按应用 ID 异步处理登记 / 注销（同 ID 的旧副本被注销时，可能连新版的扩展一起清掉），没有就重新登记
+for i in 1 2 3; do
+  sleep 3
+  pluginkit -m -i com.apollozhang.terminal-style-ui.preview | grep -q com.apollozhang && break
+  echo "扩展未登记，重新登记（第 $i 次）"
+  "$LSR" -f -R "$DEST"
+  pluginkit -a "$DEST/Contents/PlugIns/TMDPreview.appex"
+  pluginkit -e use -i com.apollozhang.terminal-style-ui.preview
+done
+pluginkit -m -i com.apollozhang.terminal-style-ui.preview | grep -q com.apollozhang || { echo "扩展登记失败"; exit 1; }
 qlmanage -r >/dev/null 2>&1; qlmanage -r cache >/dev/null 2>&1
 echo "已安装：$DEST"

@@ -270,7 +270,8 @@ export function detectFile(name, text) {
 
   let best = null, bestScore = 0;
   for (const [lang, score] of scores) if (score > bestScore) [best, bestScore] = [lang, score];
-  if (!best || bestScore < 2) best = "text";
+  // 拿不准时：有文件名按纯文本；没有文件名（管道 / stdin）按 Markdown——给 tmd 管道的一般就是 Markdown，纯文本按 Markdown 渲染也不走样
+  if (!best || bestScore < 2) best = base ? "text" : "markdown";
   const reason = [...scores].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([l, s]) => `${l}:${s}`).join(" ");
   if (best === "markdown") return { lang: "markdown", kind: "markdown", reason };
   if (best === "text") return { lang: null, kind: "text", reason };
