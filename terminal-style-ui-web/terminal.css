@@ -1,4 +1,4 @@
-/* terminal.css —— Terminal-Style-UI-Web 前端样式（2026-09-14 dev-01；2026-09-25 Claude Code：显式行高 + light）
+/* terminal.css —— Terminal-Style-UI-Web 前端样式
    配合 index.js 的 renderTerminalHtml 输出使用：把返回的 html 放进 <pre class="terminal-style-ui">（light 主题再加 ttu-light）。
    视觉对齐目标：iTerm Dark Background（Monaco/PingFang、纯黑背景、#c7c7c7 前景、粗体提亮白）。
    字号可调：改 --ttu-font-size 即可（格宽 1ch、行高按字号取整，自动跟随）。 */
@@ -13,7 +13,7 @@
 
 .terminal-style-ui {
   --ttu-cell: 1ch;
-  /* 字体：Monaco 为主（用户 iTerm 配置），中文回退 PingFang（观感优先） */
+  /* 字体：Monaco 为主（iTerm 默认观感），中文回退 PingFang（观感优先） */
   font-family: Monaco, "PingFang SC", monospace;
   font-size: var(--ttu-font-size, 13px);
   /* 行高：必须显式并取整到像素（13px 下为 17px，与原先 Monaco 的 normal 相同）。normal 时含中文（PingFang）的行

@@ -1,4 +1,4 @@
-// main.swift —— Terminal Style UI.app（2026-09-25 Claude Code）：Quick Look 扩展的宿主。
+// main.swift —— Terminal Style UI.app：Quick Look 扩展的宿主。
 // 本身没有功能：打开一次让系统登记里面的预览扩展，弹个说明就退出。
 import AppKit
 

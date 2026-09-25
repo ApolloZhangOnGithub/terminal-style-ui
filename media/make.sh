@@ -1,5 +1,5 @@
 #!/bin/zsh
-# make.sh —— 生成 README 配图（2026-09-25 Claude Code）：./make.sh，结果写进本目录的 *.png（覆盖同名旧图）
+# make.sh —— 生成 README 配图：./make.sh，结果写进本目录的 *.png（覆盖同名旧图）
 # 渲染库：演示文件（demo.md / demo.py）渲染成页面，套 Mac 窗口框，后台 WKWebView 截图（snap.swift）；
 # tmd：伪终端里跑 tmd，pyte 抓屏转 ANSI，同样画成终端窗口（tmd_capture.py）；
 # VSCode：插件测试的 --media 模式，隔离实例里拍「源文件 | 预览」，裁掉窗口标题栏（Extension Development Host / Sign In）。

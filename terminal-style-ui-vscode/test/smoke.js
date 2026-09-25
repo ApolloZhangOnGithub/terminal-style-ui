@@ -1,4 +1,4 @@
-// test/smoke.js —— 集成冒烟测试（Terminal Style UI for VSCode，2026-09-25 Claude Code）
+// test/smoke.js —— 集成冒烟测试（Terminal Style UI for VSCode）
 // 由 test/run.js 启动真实 VSCode 后在扩展进程里运行。覆盖：侧边预览（渲染 → webview 填充 → 回执）、真彩、
 // 链接不印 URL、吞字回归、实时刷新、列数设置、字号缩放、light 主题、双向滚动联动、预览跟随活动编辑器、
 // .WIKI 后缀、未登记后缀 +「识别为 Markdown」、自定义编辑器、显示源文件、渲染后 FORCE_COLOR / COLORTERM 恢复原值。

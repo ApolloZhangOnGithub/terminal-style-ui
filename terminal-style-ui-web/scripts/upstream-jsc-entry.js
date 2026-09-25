@@ -1,4 +1,4 @@
-// upstream-jsc-entry.js —— vendor/upstream-jsc.mjs 的打包入口（2026-09-25 Claude Code）
+// upstream-jsc-entry.js —— vendor/upstream-jsc.mjs 的打包入口
 // JavaScriptCore / 浏览器用得到的上游模块（只取渲染需要的，不拉进整个 TUI）。RT/ 前缀由 vendor.mjs 解析到定制版 runtime
 export { Markdown } from "RT/@earendil-works/pi-tui/dist/components/markdown.js";
 export { setCapabilities } from "RT/@earendil-works/pi-tui/dist/terminal-image.js";

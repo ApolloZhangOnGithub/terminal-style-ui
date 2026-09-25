@@ -1,4 +1,4 @@
-// vendor.mjs —— 从定制版 runtime 生成 vendor/（2026-09-25 Claude Code）：node scripts/vendor.mjs [runtimePath]（npm run vendor）
+// vendor.mjs —— 从定制版 runtime 生成 vendor/：node scripts/vendor.mjs [runtimePath]（npm run vendor）
 // 只在升级上游依赖时跑，需要一份含定制版 pi-tui 的 runtime（参数 / TSU_RUNTIME / ~/.local/lib/terminal-style-ui/runtime）。
 // 产物提交进仓库，npm run build 只用它们，不需要 runtime：
 //   vendor/upstream-jsc.mjs  JavaScriptCore / 浏览器用：Node 内置模块换成替身（fs 只认内联的 dark / light 主题与 package.json）
@@ -102,6 +102,8 @@ await esbuild.build({
     setup(b) {
       b.onResolve({ filter: /^RT\// }, (a) => ({ path: path.join(runtime, a.path.slice(3)) }));
       b.onResolve({ filter: /config\.js$/ }, (a) => (a.importer.includes("/theme/") ? { path: path.join(root, "scripts/config-shim.js") } : undefined));
+      // chalk 只留一份（同 JavaScriptCore 版）：主题模块若用到另一份，色深按运行环境自行判断，干净环境里粗体 / 颜色全丢
+      b.onResolve({ filter: /^chalk$/ }, () => ({ path: path.join(runtime, "chalk/source/index.js") }));
       b.onResolve({ filter: /^[^./]/ }, async (a) => {
         if (a.pluginData === "rt" || a.path.startsWith("node:")) return undefined;
         const r = await b.resolve(a.path, { kind: a.kind, resolveDir: a.resolveDir, pluginData: "rt" });

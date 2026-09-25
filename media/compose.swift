@@ -1,4 +1,4 @@
-// compose.swift —— 把访达窗口 + Quick Look 面板拼成一张「Mac 桌面」图（2026-09-25 Claude Code）
+// compose.swift —— 把访达窗口 + Quick Look 面板拼成一张「Mac 桌面」图
 // compose <out.png> <dark|light> find → 打印两个窗口编号；compose <out.png> <dark|light> <访达.png> <面板.png> → 按屏幕位置拼图、补柔和阴影。
 // 背景是画出来的，不截桌面——屏幕上别的窗口不会入镜
 import AppKit

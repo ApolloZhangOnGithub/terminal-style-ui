@@ -1,4 +1,4 @@
-// core.js —— 渲染核心（2026-09-25 Claude Code，从 index.js 拆出）
+// core.js —— 渲染核心（从 index.js 拆出）
 // 不碰文件系统、不动态 import：运行时模块（pi-tui / theme.js / cli-highlight / chalk）由调用方传入 mods。
 // 两个调用方共用这一份：index.js（Node：从 runtime 动态装载 mods）与 dist/ttu-core.js（esbuild 静态打包，
 // 给 Quick Look 扩展的 JavaScriptCore 用——沙盒里没有 Node）。
@@ -10,14 +10,29 @@ export function configureRuntime(mods, theme) {
   const { piTui, themeJs, highlight, chalk, supportsLanguage, hljs, cliTheme } = mods;
   // 终端能力固定为 iTerm 同款（非终端进程默认被判为未知终端 → 链接不走 OSC 8、改印 "文字 (url)"）
   piTui.setCapabilities({ images: null, trueColor: true, hyperlinks: true });
-  themeJs.initTheme(theme === "light" ? "light" : "dark");
+  // 主题模块在初始化时按 COLORTERM 决定真彩还是 256 色（ansiToHtml 只认真彩）：只在这一刻临时设上，马上恢复——
+  // 不改宿主进程的环境变量
+  const env = typeof process !== "undefined" && process.env;
+  const saved = env && env.COLORTERM;
+  if (env) env.COLORTERM = "truecolor";
+  try {
+    themeJs.initTheme(theme === "light" ? "light" : "dark");
+  } finally {
+    if (env) {
+      if (saved === undefined) delete env.COLORTERM;
+      else env.COLORTERM = saved;
+    }
+  }
   const mdTheme = themeJs.getMarkdownTheme();
   const hlTheme = makeHighlightTheme(chalk, theme);
   mdTheme.highlightCode = (code, lang) => {
     try {
-      // 常用名单之外的语言（swift / ruby / kotlin…）问 cli-highlight 支不支持；不认识的不传（不传 = 按纯文本）
+      // 常用名单之外的语言（swift / ruby / kotlin…）问 cli-highlight 支不支持。没写语言或不认识：返回 null，
+      // pi-tui 按代码块底色输出纯文本——不能把语言传成 undefined，那会让 highlight.js 自动识别、191 种语言挨个试
+      // （大日志 / CSV 要十几秒、会爆内存，英文单词还被染成关键字色）
       const known = lang && (HIGHLIGHT_LANGS.has(String(lang).toLowerCase()) || supportsLanguage?.(String(lang).toLowerCase()));
-      const safeLang = known ? lang : undefined;
+      if (!known) return null;
+      const safeLang = lang;
       // 有 hljs 时走快路径（输出与 cli-highlight 逐字节一致，快约 40 倍）；否则退回 cli-highlight
       if (hljs && cliTheme) return fastHighlight(hljs, cliTheme, code, safeLang, hlTheme).split("\n");
       return highlight(code, { language: safeLang, theme: hlTheme }).split("\n");
@@ -33,7 +48,7 @@ export function configureRuntime(mods, theme) {
 //   hljs-<token> 的 span：子节点先上色（子文本不另加色），整体再套 theme[token] || DEFAULT_THEME[token] || plain；
 //   不带 hljs- 的 span：子节点按顶层处理；顶层文本套 theme.default || DEFAULT_THEME.default || plain
 function fastHighlight(hljs, cliTheme, code, language, theme) {
-  const html = language ? hljs.highlight(code, { language, ignoreIllegals: undefined }).value : hljs.highlightAuto(code).value;
+  const html = hljs.highlight(code, { language, ignoreIllegals: undefined }).value; // 调用方保证 language 已知（不自动识别）
   const { DEFAULT_THEME = {}, plain = (s) => s } = cliTheme;
   const paint = (token) => theme[token] || DEFAULT_THEME[token] || plain;
   const paintTop = theme.default || DEFAULT_THEME.default || plain;
@@ -61,18 +76,40 @@ function decodeEntities(text) {
     dec ? String.fromCodePoint(+dec) : hex ? String.fromCodePoint(parseInt(hex, 16)) : ENTITIES[name] ?? all);
 }
 
-// 4. 清洗（与 TUI assistant-message 同源）：剥模型幻觉 XML 标签 + 独立 --- 分隔线（TUI 特意不渲染）。
-//    --- 行清空而非删除、记下开头被 trim 掉的行数——保持行号，源码映射据此对回原文（渲染结果与整段剥掉相同）
+// 4. 清洗——只给模型的聊天输出用（renderLines 的 clean: true，默认不开；文档一律原样解析）：
+//    剥模型幻觉出的工具调用标签 + 独立的 --- 分隔线（TUI 特意不渲染）。代码块里的内容不动。
+//    --- 行清空而非删除、记下开头被 trim 掉的行数——保持行号，源码映射据此对回原文
+const FENCE_RE = /^ {0,3}(`{3,}|~{3,})/;
+const TOOL_TAG_RE = /<\/?(?:parameter|function_calls|antml:[a-z_]+)(?=[\s/>])[^>]*>/g; // 只认完整标签名（不误伤 <parameters>）
 export function cleanMarkdown(markdown) {
-  const cleaned = String(markdown ?? "")
-    .replace(/<\/?(?:parameter|function_calls|antml:[a-z_]+)[^>]*>/g, "")
-    .replace(/^[ \t]*---[ \t\r]*$/gm, "");
+  let fence = null; // 当前所在代码块的围栏（``` / ~~~ 及长度）
+  const cleaned = String(markdown ?? "").split("\n").map((line) => {
+    const f = FENCE_RE.exec(line);
+    if (fence) {
+      if (f && f[1][0] === fence[0] && f[1].length >= fence.length && !line.slice(f[0].length).trim()) fence = null;
+      return line;
+    }
+    if (f) {
+      fence = f[1];
+      return line;
+    }
+    return /^[ \t]*---[ \t\r]*$/.test(line) ? "" : line.replace(TOOL_TAG_RE, "");
+  }).join("\n");
   const lineOffset = (cleaned.match(/^\s*/)[0].match(/\n/g) || []).length;
   return { md: cleaned.trim(), lineOffset };
 }
 
+// 文档开头的 YAML front matter（--- … ---）按 yaml 代码块显示：否则会被当成分隔线 + setext 标题，内容漏进正文。
+// 只换两行围栏，行数不变（源码映射不受影响）
+export function frontMatterToCode(md) {
+  const m = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(\r?\n|$)/.exec(md);
+  if (!m || m[1].split("\n").length > 200) return md;
+  const fence = "`".repeat(Math.max(2, ...(m[1].match(/`+/g) ?? []).map((run) => run.length)) + 1);
+  return `${fence}yaml\n${m[1]}\n${fence}${m[2]}${md.slice(m[0].length)}`;
+}
+
 export function createMarkdown(mods, mdTheme, markdown) {
-  const c = new mods.piTui.Markdown(cleanMarkdown(markdown).md, 2, 0, mdTheme);
+  const c = new mods.piTui.Markdown(frontMatterToCode(String(markdown ?? "")), 2, 0, mdTheme);
   patchCodeGutter(c, (t) => mods.themeJs.theme.fg("dim", t));
   return c;
 }
@@ -80,11 +117,11 @@ export function createMarkdown(mods, mdTheme, markdown) {
 // 1–5：markdown → pi-tui 渲染出的 ANSI 行
 export function renderLines(mods, markdown, options = {}) {
   // paddingX：左右边距列数。默认 2（终端 / TUI：正文对齐在 ⏺ 之下）；页面自带留白的场合（VSCode 预览、Quick Look）传 0
-  const { width = 80, theme = "dark", sourceMap = false, clean = true, paddingX = 2 } = options;
+  // clean：只给模型聊天输出用（剥工具调用标签与 --- 分隔线）；文档默认原样解析
+  const { width = 80, theme = "dark", sourceMap = false, clean = false, paddingX = 2 } = options;
   const { piTui } = mods;
   const mdTheme = configureRuntime(mods, theme);
-  // clean: false —— 代码 / 文本文件包成的代码块不做 Markdown 清洗（YAML 的 --- 分隔行、代码里的 <parameter> 都是正文）
-  const { md, lineOffset } = clean ? cleanMarkdown(markdown) : { md: String(markdown ?? ""), lineOffset: 0 };
+  const { md, lineOffset } = clean ? cleanMarkdown(markdown) : { md: frontMatterToCode(String(markdown ?? "")), lineOffset: 0 };
 
   // 5. pi-tui 渲染 → ANSI（尾部填充空格剥离）；sourceMap 时记录每个顶层块渲染出的行
   const c = new piTui.Markdown(md, paddingX, 0, mdTheme);
@@ -96,7 +133,7 @@ export function renderLines(mods, markdown, options = {}) {
   return { lines, blocks, visibleWidth: piTui.visibleWidth };
 }
 
-// 代码块行号栏（2026-09-25 用户定稿）：同 Claude Code 的 Write 输出——灰色行号 + 一个空格，不画竖线；续行对齐代码列。
+// 代码块行号栏：同 Claude Code 的 Write 输出——灰色行号 + 一个空格，不画竖线；续行对齐代码列。
 // pi-tui（定制版）画的是「  1 │ 代码」，续行只缩进不画线：这里把「 │ 」去掉、行号染灰，续行少缩进 2 列。
 // 行数不变，不影响源码映射；TUI 本身不动。
 // 旧版（续行补上竖线，行号栏整列连续）保留在下面的注释里，恢复时换回 patchCodeGutterBar 即可。
@@ -276,8 +313,9 @@ export function detectFile(name, text) {
   const scores = new Map();
   const vote = (lang, points) => lang && scores.set(lang, (scores.get(lang) ?? 0) + points);
   const extLang = EXT_LANG[ext] ?? EXT_LANG[base.slice(base.lastIndexOf(".") + 1)];
-  vote(extLang, 3);
-  vote(NAME_LANG[lower] ?? NAME_LANG[lower.replace(/\.[^.]*$/, "")], 3);
+  // 已知后缀 / 文件名是强证据（6 分）：内容要足够明确才推翻它（JSON 可整体解析 8 分；#!、编辑器模式行 6 分，平局看下面）
+  vote(extLang, 6);
+  vote(NAME_LANG[lower] ?? NAME_LANG[lower.replace(/\.[^.]*$/, "")], 6);
 
   const head = text.slice(0, 20000);
   const firstLine = head.split("\n", 1)[0];
@@ -303,6 +341,7 @@ export function detectFile(name, text) {
 
   let best = null, bestScore = 0;
   for (const [lang, score] of scores) if (score > bestScore) [best, bestScore] = [lang, score];
+  if (extLang && scores.get(extLang) >= bestScore) best = extLang; // 平局以后缀为准（不靠 Map 的插入顺序）
   // 拿不准时：有文件名按纯文本；没有文件名（管道 / stdin）按 Markdown——给 tmd 管道的一般就是 Markdown，纯文本按 Markdown 渲染也不走样
   if (!best || bestScore < 2) best = base ? "text" : "markdown";
   const reason = [...scores].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([l, s]) => `${l}:${s}`).join(" ");
@@ -328,48 +367,40 @@ export function fileToMarkdown(name, text, detected = detectFile(name, text)) {
 //   行号：pi-tui 每块从 1 编起 → 换成真实行号；
 //   行号栏宽度：pi-tui 按「块」的行数定位数，位数不同折行宽度也不同 → 块尾补空行凑够整篇的位数，渲染完去掉（空行只出一行）；
 //   整个文件就是代码：不要 Markdown 左右边距与代码块缩进，行号贴左边；行号栏同 Claude Code 的 Write 输出——
-//   灰色行号 + 一个空格，不画竖线，续行对齐代码列（用户要求）
+//   灰色行号 + 一个空格，不画竖线，续行对齐代码列
 export function* renderFileChunks(mods, name, text, options = {}) {
   const { width = 100, theme = "dark", chunkLines = 400, paddingX = 2 } = options;
   const detected = detectFile(name, text);
   if (detected.kind !== "code" && detected.kind !== "text") {
-    yield renderLines(mods, fileToMarkdown(name, text, detected), { width, theme, paddingX, clean: detected.kind === "markdown" }).lines;
+    yield renderLines(mods, fileToMarkdown(name, text, detected), { width, theme, paddingX }).lines;
     return;
   }
-  // 与 marked 交给 renderToken 的 token.text 一致：换行归一、tab → 3 空格（Markdown 组件整篇替换）、去掉结尾换行
+  // 换行归一、tab → 3 空格（同 pi-tui 对代码块的处理）、去掉结尾换行
   const source = text.replace(/\r\n?/g, "\n").replace(/\t/g, "   ").replace(/\n$/, "");
   const all = source.split("\n");
   const mdTheme = configureRuntime(mods, theme);
   const lang = detected.kind === "code" ? detected.lang : "";
-  const highlighted = mdTheme.highlightCode(source, lang || undefined) ?? all;
+  // 整篇高亮一次（chalk 按行闭合颜色，行与行互不影响）；语言不认识 / 纯文本：按代码块底色（同 pi-tui）
+  const styled = (lang && mdTheme.highlightCode(source, lang)) || all.map((line) => mdTheme.codeBlock(line));
+  // 行号栏自己画（同 Claude Code 的 Write 输出）：灰色行号右对齐到整篇的位数 + 一个空格；只借 pi-tui 的折行，
+  // 续行缩进到代码列（折在空格后时去掉续行开头那个空格）。与原先交给 pi-tui 代码块渲染再改写行号的结果逐字节相同
   const digits = String(all.length).length;
-  const fenceLen = Math.max(2, ...(source.match(/`+/g) ?? []).map((run) => run.length)) + 1;
-  const fence = "`".repeat(fenceLen);
+  const available = Math.max(1, width - digits - 1);
+  const indent = " ".repeat(digits + 1);
+  const dim = (t) => mods.themeJs.theme.fg("dim", t);
+  const trimEnd = (line) => line.replace(/ +$/, "");
   for (let start = 0; start < all.length; start += chunkLines) {
-    const count = Math.min(chunkLines, all.length - start);
-    const filler = Math.max(0, 10 ** (digits - 1) - count); // 凑够位数的空行
-    const chunkHl = highlighted.slice(start, start + count).concat(Array(filler).fill(""));
-    const md = `${fence}${lang}\n${all.slice(start, start + count).concat(Array(filler).fill("")).join("\n")}\n${fence}`;
-    const saved = mdTheme.highlightCode;
-    const savedIndent = mdTheme.codeBlockIndent;
-    const c = new mods.piTui.Markdown(md, 0, 0, mdTheme);
-    mdTheme.highlightCode = () => chunkHl; // 已整篇高亮过，按块取
-    mdTheme.codeBlockIndent = "";
-    let lines;
-    try {
-      lines = [...c.render(width + 2)].map((l) => String(l).replace(/ +$/, "")); // 竖线那 2 列下面会去掉：按 width + 2 排，去掉后正好 width
-    } finally {
-      mdTheme.highlightCode = saved;
-      mdTheme.codeBlockIndent = savedIndent;
+    const lines = [];
+    for (let i = start; i < Math.min(all.length, start + chunkLines); i++) {
+      const number = dim(String(i + 1).padStart(digits));
+      const chunks = mods.piTui.wrapTextWithAnsi(styled[i] ?? "", available);
+      if (!chunks || chunks.length === 0) {
+        lines.push(number);
+        continue;
+      }
+      lines.push(trimEnd(`${number} ${chunks[0]}`));
+      for (let k = 1; k < chunks.length; k++) lines.push(trimEnd(indent + chunks[k].replace(/^ /, "")));
     }
-    if (filler) lines = lines.slice(0, lines.length - filler);
-    // 换成真实行号（位数已凑齐，按原宽度右对齐）、灰色；「 │ 」→「 」；续行（pi-tui 用 行号栏宽 + 3 个空格缩进）去掉竖线那 2 列
-    const dim = (t) => mods.themeJs.theme.fg("dim", t);
-    const gutter = digits + 3;
-    yield lines.map((line) => {
-      const numbered = /^( *\d+) │(?: |$)/.exec(line);
-      if (numbered) return `${dim(String(Number(numbered[1]) + start).padStart(numbered[1].length))} ${line.slice(numbered[0].length)}`.replace(/ +$/, "");
-      return line.startsWith(" ".repeat(gutter)) ? line.slice(2) : line;
-    });
+    yield lines;
   }
 }

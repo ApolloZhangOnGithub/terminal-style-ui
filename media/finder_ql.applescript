@@ -1,4 +1,4 @@
--- finder_ql.applescript —— 打开 / 关闭「访达 + 快速查看」（2026-09-25 Claude Code）
+-- finder_ql.applescript —— 打开 / 关闭「访达 + 快速查看」
 -- osascript finder_ql.applescript open <目录> <文件名>：新开访达窗口（列表视图、收起侧边栏——侧边栏会露出用户名）、选中文件、按空格
 -- osascript finder_ql.applescript close <目录名>：关快速查看、关窗口
 -- 只在访达确实在最前时才发按键（否则会打进别的程序），不在最前就放弃

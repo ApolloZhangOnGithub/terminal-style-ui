@@ -1,4 +1,4 @@
-// bundle-lib.mjs —— 打包前把渲染库拷进插件的 lib/（2026-09-25 Claude Code）：npm run package 自动调用
+// bundle-lib.mjs —— 打包前把渲染库拷进插件的 lib/：npm run package 自动调用
 // 插件自带渲染库（含打包好的上游模块 dist/runtime.mjs 与主题），装到任何机器上都不依赖外部路径
 import fs from "node:fs";
 import path from "node:path";

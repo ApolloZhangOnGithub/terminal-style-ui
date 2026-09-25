@@ -1,4 +1,4 @@
-// renderer.js —— 扩展进程侧渲染封装（Terminal Style UI for VSCode，2026-09-25 Claude Code）
+// renderer.js —— 扩展进程侧渲染封装（Terminal Style UI for VSCode）
 // 动态 import 装载 terminal-style-ui-web（ESM），串行调用 renderTerminalHtml → { html, blocks }
 // （blocks：源码行 → 渲染行的块级映射，供滚动联动）。
 // 不依赖 vscode 模块（普通 Node 里可直接调用）。

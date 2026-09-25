@@ -1,4 +1,4 @@
-// index.js —— Terminal-Style-UI-Web 渲染入口（2026-09-14 dev-01）
+// index.js —— Terminal-Style-UI-Web 渲染入口
 // 把终端 TUI 的渲染管线封装为可复用函数：markdown → pi-tui（定制版）→ ANSI → 格子化 HTML。
 // 入口：renderTerminalHtml（网页 / VSCode 预览）、renderTerminalAnsi（只要 ANSI，终端直接输出，如 bin/tmd.mjs）、
 // renderFileHtml（任意文件）。渲染逻辑在 core.js，本文件只负责装载打包好的上游模块（dist/runtime.mjs）。
@@ -6,11 +6,8 @@
 import { ansiToHtml } from "./ansi-to-html.js";
 import * as core from "./core.js";
 
-//FORCE_COLOR 必须在 chalk 装载前设置（否则非 TTY 环境下高亮全被降级为无样式——坑见 DEVELOPMENT.md）
-process.env.FORCE_COLOR = "3";
-//COLORTERM 同理：pi-tui 按它判断真彩并缓存首次结果；theme.js 引用的是 pi-coding-agent 内嵌的另一份 pi-tui，只能靠环境变量
-//（非终端进程如 VSCode 插件里缺它 → 主题色退回 256 色 38;5;N，ansiToHtml 不认——坑见 DEVELOPMENT.md）
-process.env.COLORTERM = "truecolor";
+// 不改宿主进程的环境变量（FORCE_COLOR / COLORTERM）：chalk 的色深在装载后直接定死真彩，终端能力由 setCapabilities 固定——
+// 渲染结果与运行环境无关，也不会让宿主程序自己的输出莫名带上颜色
 
 // 装载上游模块：全部打在 dist/runtime.mjs 里（npm run build 生成）——pi-tui（定制版 markdown）、theme.js（dark/light 配色）、
 // cli-highlight + highlight.js、chalk。动态 import：上面的环境变量要在 chalk / pi-tui 装载前设好。渲染逻辑本身在 core.js

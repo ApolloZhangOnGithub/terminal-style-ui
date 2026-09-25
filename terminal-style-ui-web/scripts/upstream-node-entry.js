@@ -1,4 +1,4 @@
-// upstream-node-entry.js —— vendor/upstream-node.mjs 的打包入口（2026-09-25 Claude Code；build.mjs 原样拷成 dist/runtime.mjs）
+// upstream-node-entry.js —— vendor/upstream-node.mjs 的打包入口（build.mjs 原样拷成 dist/runtime.mjs）
 // Node 侧（index.js、tmd、VSCode 插件）用到的上游模块全部从这里出：打包后不再依赖本机 runtime。
 // RT/ 前缀由 vendor.mjs 解析到 runtime 的 node_modules（只在构建时需要）。
 export * as piTui from "RT/@earendil-works/pi-tui/dist/index.js";

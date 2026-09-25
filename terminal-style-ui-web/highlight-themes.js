@@ -1,7 +1,7 @@
-// highlight-themes.js —— 代码高亮配色（cli-highlight theme，2026-09-14 dev-01）
+// highlight-themes.js —— 代码高亮配色（cli-highlight theme）
 // dark = MONOKAI（与 TUI interactive-mode.js 逐键一致：STORAGE_KEYWORDS 声明类关键字青色 rgb(102,217,239)，
-// 其余关键字粉 rgb(249,38,114)——曾抄错集合被用户抓包，此集合为权威版本）。
-// light（2026-09-25 Claude Code）= 同一套 token→色相映射，按白底加深。TUI 的 light 仍用 MONOKAI 原色，
+// 其余关键字粉 rgb(249,38,114)）。
+// light= 同一套 token→色相映射，按白底加深。TUI 的 light 仍用 MONOKAI 原色，
 // 其中变量/属性为纯白、标点为近白，白底上不可见——这里不照搬。
 // 用法：makeHighlightTheme(chalk, "dark"|"light") → cli-highlight theme 对象。
 

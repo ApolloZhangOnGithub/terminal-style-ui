@@ -1,4 +1,4 @@
-// pages.mjs —— 生成截图用的页面（2026-09-25 Claude Code）：node pages.mjs <输出目录>
+// pages.mjs —— 生成截图用的页面：node pages.mjs <输出目录>
 // 演示文件（demo.md / demo.py）按 dark / light 渲染，套 Mac 窗口框；另把 tmd 界面的 ANSI（tmd.ans，make.sh 抓的）转成页面
 import fs from "node:fs";
 import path from "node:path";

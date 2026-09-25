@@ -1,4 +1,4 @@
-// build.mjs —— 生成 dist/（2026-09-25 Claude Code）：node scripts/build.mjs（npm run build）
+// build.mjs —— 生成 dist/：node scripts/build.mjs（npm run build）
 // 只用仓库里的 vendor/（上游依赖，npm run vendor 生成并提交）+ 本库代码，不需要定制版 runtime：
 //   dist/runtime.mjs  Node 侧上游模块（= vendor/upstream-node.mjs）+ dist/themes/
 //   dist/ttu-core.js  JavaScriptCore / 浏览器用的单文件（IIFE，全局 TTU）：core-entry.js + vendor/upstream-jsc.mjs + 垫片

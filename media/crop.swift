@@ -1,4 +1,4 @@
-// crop.swift —— 裁掉图片顶部若干像素（2026-09-25 Claude Code）：crop <in.png> <out.png> <顶部像素>
+// crop.swift —— 裁掉图片顶部若干像素：crop <in.png> <out.png> <顶部像素>
 import AppKit
 let a = CommandLine.arguments
 let src = NSBitmapImageRep(data: try! Data(contentsOf: URL(fileURLWithPath: a[1])))!.cgImage!

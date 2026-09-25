@@ -1,8 +1,8 @@
 // ansi-to-html.js —— ANSI 转义序列 → 格子化 HTML（Terminal-Style-UI-Web 核心模块）
-// 2026-09-14 dev-01；2026-09-25 Claude Code 重写解析、格子与制表符绘制。设计要点：
+// 设计要点：
 // 1. 分词解析：正则切出转义序列（CSI / OSC / 其他 ESC）与文字段——不再手工推进下标（旧版 CSI 分支双重自增吞字，见 DEVELOPMENT 坑 8）
 // 2. SGR 状态机：前景色(38;2;RGB)/粗体(1)/dim(2)/斜体(3)/下划线(4) 及其重置(22/23/24/39/0)；
-//    OSC（含 OSC 8 超链接）整段剥离只留文字（2026-09-14 用户定稿：不显示 url）
+//    OSC（含 OSC 8 超链接）整段剥离只留文字（与终端一致：不显示 url）
 // 3. 样式段：同样式的连续内容包进一个 <span>；下划线画在该 span 的背景上——整段连续、覆盖段内格子
 //    （text-decoration 画不进 inline-block 格子：中文下划线会一字一断）
 // 4. 格子：文字按字素簇切分，宽度与排版同源（options.widthOf：渲染入口传 pi-tui 的 visibleWidth；默认 charWidth）——
@@ -97,13 +97,16 @@ const BOX_CHARS_RE = new RegExp(`[${Object.keys(BOX_ARMS).join("")}]`, "g");
 const CELL = `<span style="display:inline-block;width:${cellWidth(1)}">`;
 const CELL_SPACER = `${CELL}</span>`;
 const SEGMENTER = typeof Intl !== "undefined" && Intl.Segmenter ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
-// 下划线：样式段 span 的背景线（内容区底部上方 1px）
-const UNDERLINE = "background:linear-gradient(currentColor,currentColor) 0 calc(100% - 1px)/100% 1px no-repeat";
+// 下划线 / 删除线：样式段 span 的背景线（下划线在内容区底部上方 1px，删除线在正中）——text-decoration 画不进
+// inline-block 格子，中文会一字一断，背景线则覆盖整段、中英文连续
+const LINE = "linear-gradient(currentColor,currentColor)";
+const UNDERLINE_BG = `${LINE} 0 calc(100% - 1px)/100% 1px no-repeat`;
+const STRIKE_BG = `${LINE} 0 55%/100% 1px no-repeat`;
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 export function ansiToHtml(ansi, theme = "dark", options = {}) {
   const widthOf = options.widthOf || charWidth;
-  let color = null, bold = false, dim = false, italic = false, underline = false;
+  let color = null, bold = false, dim = false, italic = false, underline = false, strike = false;
   let style = "";
   const updateStyle = () => {
     const st = [];
@@ -115,14 +118,15 @@ export function ansiToHtml(ansi, theme = "dark", options = {}) {
     }
     if (dim) st.push("opacity:0.55");
     if (italic) st.push("font-style:italic");
-    if (underline) st.push(UNDERLINE);
+    const lines = [underline && UNDERLINE_BG, strike && STRIKE_BG].filter(Boolean);
+    if (lines.length) st.push(`background:${lines.join(",")}`);
     style = st.join(";");
   };
   const applySgr = (params) => {
     const ps = params.split(";").map((x) => parseInt(x || "0", 10));
     for (let k = 0; k < ps.length; k++) {
       const p = ps[k];
-      if (p === 0) { color = null; bold = dim = italic = underline = false; }
+      if (p === 0) { color = null; bold = dim = italic = underline = strike = false; }
       else if (p === 1) bold = true;
       else if (p === 2) dim = true;
       else if (p === 3) italic = true;
@@ -130,6 +134,8 @@ export function ansiToHtml(ansi, theme = "dark", options = {}) {
       else if (p === 22) { bold = false; dim = false; }
       else if (p === 23) italic = false;
       else if (p === 24) underline = false;
+      else if (p === 9) strike = true;
+      else if (p === 29) strike = false;
       else if (p === 39) color = null;
       else if (p === 38 && ps[k + 1] === 2) { color = [ps[k + 2], ps[k + 3], ps[k + 4]]; k += 4; }
     }
@@ -159,7 +165,7 @@ export function ansiToHtml(ansi, theme = "dark", options = {}) {
 
   // options.cache（Map）：按「行首样式状态 + 行内容」缓存每行的 HTML 与行尾状态——编辑时没变的行直接复用
   const cache = options.cache;
-  const stateKey = () => `${color ? color.join(",") : ""}|${+bold}${+dim}${+italic}${+underline}`;
+  const stateKey = () => `${color ? color.join(",") : ""}|${+bold}${+dim}${+italic}${+underline}${+strike}`;
   ansi.split("\n").forEach((line, i) => {
     // 每行结尾都关掉样式段、下一行再重新打开：每一行的 HTML 自成一体（预览页按行增量替换，不能有跨行的 <span>）
     if (i) out += "\n";
@@ -167,7 +173,7 @@ export function ansiToHtml(ansi, theme = "dark", options = {}) {
     const hit = cache && cache.get(key);
     if (hit) {
       out += hit.html;
-      [color, bold, dim, italic, underline] = hit.end;
+      [color, bold, dim, italic, underline, strike] = hit.end;
       updateStyle();
       return;
     }
@@ -184,7 +190,7 @@ export function ansiToHtml(ansi, theme = "dark", options = {}) {
     if (last < line.length) text(line.slice(last), grid);
     setRun("");
     if (cache) {
-      cache.set(key, { html: out.slice(start), end: [color, bold, dim, italic, underline] });
+      cache.set(key, { html: out.slice(start), end: [color, bold, dim, italic, underline, strike] });
       if (cache.size > (options.cacheMax ?? 20000)) cache.delete(cache.keys().next().value);
     }
   });

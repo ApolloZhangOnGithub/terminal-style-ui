@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# tmd_capture.py —— 抓 tmd 交互界面的一屏（2026-09-25 Claude Code）：python3 tmd_capture.py <demo.md> <out.ans> [dark|light]
+# tmd_capture.py —— 抓 tmd 交互界面的一屏：python3 tmd_capture.py <demo.md> <out.ans> [dark|light]
 # 伪终端里跑 tmd（全屏），输入一条消息和 /tmd demo.md，用 pyte 记下带颜色的屏幕，转回 ANSI（pages.mjs 再画成终端窗口）。
 # 依赖 pyte（PYTHONPATH 里）；会话写到临时目录，不进 ~/.tmd
 import os, pty, sys, time, select, struct, fcntl, termios, tempfile

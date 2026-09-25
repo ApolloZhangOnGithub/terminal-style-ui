@@ -1,5 +1,5 @@
 #!/bin/zsh
-# finder_ql.sh —— 拍「访达 + 快速查看」的真实界面（2026-09-25 Claude Code）：./finder_ql.sh <演示目录> <文件名> <输出.png> <dark|light>
+# finder_ql.sh —— 拍「访达 + 快速查看」的真实界面：./finder_ql.sh <演示目录> <文件名> <输出.png> <dark|light>
 # 深色时临时切系统外观，拍完恢复。需要辅助功能权限（System Events 发空格）；目录用真实路径（/tmp 是软链，访达会当成替身）
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"

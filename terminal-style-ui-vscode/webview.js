@@ -1,4 +1,4 @@
-// webview.js —— 预览页脚本（运行在 VSCode Webview 内；Terminal Style UI for VSCode，2026-09-25 Claude Code）
+// webview.js —— 预览页脚本（运行在 VSCode Webview 内；Terminal Style UI for VSCode）
 // ① 按面板宽度测算列数（1ch = 字体真实 advance）回报扩展进程——与终端按窗口宽度排版一致
 // ② 接收渲染好的格子化 HTML 填入 <pre>（切换 dark / light），并回执（集成测试据此确认整条链路）
 // ③ 滚动按整行吸附（滚轮 / 触控板 / 方向键 / 翻页），同终端与 Claude Code 一行一行的手感：视口底边落在行边界上

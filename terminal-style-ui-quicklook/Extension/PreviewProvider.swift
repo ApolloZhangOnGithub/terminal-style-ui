@@ -1,4 +1,4 @@
-// PreviewProvider.swift —— Quick Look 预览扩展（Terminal Style UI，2026-09-25 Claude Code）
+// PreviewProvider.swift —— Quick Look 预览扩展（Terminal Style UI）
 // 访达里按空格：读文件 → 自己的 WKWebView 加载 shell.html（内含 ttu-core.js，终端渲染管线打包版）→ 页面里按窗口宽度
 // 流式渲染：第一块（300 行）出来就显示，其余陆续追加；窗口变宽窄自动重排。
 // Markdown 照常渲染；代码 / 文本行号贴左、带高亮；类型由 ttu-core 的 detectFile 判断（后缀只是证据之一）。

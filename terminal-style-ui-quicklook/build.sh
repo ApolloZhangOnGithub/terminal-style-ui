@@ -1,5 +1,5 @@
 #!/bin/zsh
-# build.sh —— 构建并安装 Terminal Style UI.app（含 Quick Look 预览扩展）（2026-09-25 Claude Code）
+# build.sh —— 构建并安装 Terminal Style UI.app（含 Quick Look 预览扩展）
 #   ./build.sh            构建到临时目录（每次新建，不删旧的），安装到 ~/Applications 并登记扩展
 #   ./build.sh --no-install
 # 依赖：Xcode（swiftc）、同级 terminal-style-ui-web（先打包 dist/ttu-core.js）、钥匙串里的 Apple Development 签名证书
@@ -10,7 +10,6 @@ WEB="../terminal-style-ui-web"
 BUILD="${TMPDIR:-/tmp}/terminal-markdown-build/$(date +%Y%m%d-%H%M%S)"
 APP="$BUILD/Terminal Style UI.app"
 APPEX="$APP/Contents/PlugIns/TMDPreview.appex"
-TARGET="arm64-apple-macos13.0"
 IDENTITY="${TMD_SIGN_IDENTITY:-$(security find-identity -v -p codesigning | awk -F'"' '/Apple Development/ {print $2; exit}')}"
 [[ -n "$IDENTITY" ]] || IDENTITY="-" # 没有证书时临时签名（扩展可能不被系统加载）
 
@@ -27,11 +26,16 @@ for s in 16 32 64 128; do cp "$ICONSET/icon_$((s * 2))x$((s * 2)).png" "$ICONSET
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 cp -X "$WEB/dist/ttu-core.js" "$WEB/terminal.css" Extension/shell.html "$APPEX/Contents/Resources/"
 
-swiftc -O -target "$TARGET" -module-name TMDPreview -parse-as-library \
-  -framework QuickLookUI -framework WebKit -framework AppKit \
-  -Xlinker -e -Xlinker _NSExtensionMain \
-  Extension/PreviewProvider.swift -o "$APPEX/Contents/MacOS/TMDPreview"
-swiftc -O -target "$TARGET" -module-name TerminalStyleUI App/main.swift -o "$APP/Contents/MacOS/TerminalStyleUI"
+# 通用二进制（Apple Silicon + Intel）：两个架构分别编译，再用 lipo 合并
+for arch in arm64 x86_64; do
+  swiftc -O -target "$arch-apple-macos13.0" -module-name TMDPreview -parse-as-library \
+    -framework QuickLookUI -framework WebKit -framework AppKit \
+    -Xlinker -e -Xlinker _NSExtensionMain \
+    Extension/PreviewProvider.swift -o "$BUILD/TMDPreview-$arch"
+  swiftc -O -target "$arch-apple-macos13.0" -module-name TerminalStyleUI App/main.swift -o "$BUILD/TerminalStyleUI-$arch"
+done
+lipo -create "$BUILD/TMDPreview-arm64" "$BUILD/TMDPreview-x86_64" -output "$APPEX/Contents/MacOS/TMDPreview"
+lipo -create "$BUILD/TerminalStyleUI-arm64" "$BUILD/TerminalStyleUI-x86_64" -output "$APP/Contents/MacOS/TerminalStyleUI"
 
 codesign --force --sign "$IDENTITY" --entitlements Extension/TMDPreview.entitlements --timestamp=none "$APPEX"
 codesign --force --sign "$IDENTITY" --timestamp=none "$APP"

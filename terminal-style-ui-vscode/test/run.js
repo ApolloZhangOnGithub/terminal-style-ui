@@ -1,4 +1,4 @@
-// test/run.js —— 集成测试启动器（Terminal Style UI for VSCode，2026-09-25 Claude Code）
+// test/run.js —— 集成测试启动器（Terminal Style UI for VSCode）
 // 用本机已装的 VSCode 跑 test/smoke.js：独立的 user-data-dir / extensions-dir（不碰日常配置与已装插件），
 // 并剥掉终端相关环境变量，模拟从 Dock 启动的 GUI 进程（验证渲染不依赖终端环境）。
 // 用法：npm test（会短暂弹出一个 VSCode 窗口，跑完自动退出；临时目录在系统 tmp 下，由系统定期清理）

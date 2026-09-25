@@ -1,4 +1,4 @@
-// render.test.mjs —— 渲染库单元测试（2026-09-25 Claude Code）：npm test（先 npm run build）
+// render.test.mjs —— 渲染库单元测试：npm test（先 npm run build）
 // 不需要定制版 runtime，CI 里跑：类型检测、表格 / 源码映射、不超宽、分块 = 整篇、代码行号样式、
 // 打包版在纯 JavaScript 环境（vm，模拟 JavaScriptCore：没有 Node API）里与 Node 版逐字节一致、tmd 命令行
 import assert from "node:assert/strict";
@@ -118,4 +118,55 @@ test("缓存（块缓存 + 行缓存）不改变结果：随机编辑 60 次，�
       }
     }
   }
+});
+
+// ── 回归测试：大文本不自动识别语言、代码无万行悬崖、文档原样解析、聊天清洗、类型判断 ──
+
+test("纯文本 / 没写语言的代码块不触发 highlight.js 自动识别（大日志不卡）", async () => {
+  const log = Array.from({ length: 3000 }, (_, i) => `2026-09-25 12:00:${String(i % 60).padStart(2, "0")} INFO worker-${i % 7} request id=${i} is done of the job to x`).join("\n");
+  let t = performance.now();
+  const plain = await lib.renderFileAnsi("app.log", log, { width: 100 });
+  assert.ok(performance.now() - t < 3000, `3000 行日志用了 ${Math.round(performance.now() - t)}ms`);
+  assert.ok(!/\x1b\[38;2;249;38;114m(?:is|of|to)\x1b/.test(plain.ansi), "英文单词不应被染成关键字色");
+  t = performance.now();
+  await lib.renderTerminalAnsi("```\n" + log + "\n```", { width: 100 });
+  assert.ok(performance.now() - t < 3000, `没写语言的 3000 行代码块用了 ${Math.round(performance.now() - t)}ms`);
+});
+
+test("代码文件没有万行性能悬崖（行号栏自己画）", async () => {
+  const time = async (n) => {
+    const code = Array.from({ length: n }, (_, i) => `x_${i} = ${i}  # line ${i}`).join("\n");
+    const t = performance.now();
+    await lib.renderFileAnsi("big.py", code, { width: 100 });
+    return performance.now() - t;
+  };
+  const t9999 = await time(9999), t10000 = await time(10000);
+  assert.ok(t10000 < t9999 * 3 + 500, `9999 行 ${Math.round(t9999)}ms，10000 行 ${Math.round(t10000)}ms`);
+});
+
+test("文档原样解析：不清洗 --- 与标签；front matter 按 YAML 代码块", async () => {
+  const md = "---\ntitle: 示例\n---\n\nSetext 二级\n---\n\n段落\n\n---\n\n```yaml\na: 1\n---\nb: 2\n```\n\n```xml\n<parameters>\n  <parameter name=\"x\">1</parameter>\n</parameters>\n```\n";
+  const text = strip((await lib.renderTerminalAnsi(md, { width: 50 })).ansi);
+  assert.match(text, /1 title: 示例/, "front matter 应显示成代码块");
+  assert.match(text, /─{20,}/, "分隔线应画出来");
+  assert.match(text, /2 ---/, "YAML 代码块里的 --- 应保留");
+  assert.match(text, /<parameters>/, "代码块里的 <parameters> 应保留");
+  assert.match(text, /<parameter name="x">1<\/parameter>/, "代码块里的 <parameter> 应保留");
+  const { ansi } = await lib.renderTerminalAnsi("标题\n---\n", { width: 40 });
+  assert.match(ansi, /\x1b\[1m/, "setext 二级标题应为粗体标题");
+});
+
+test("聊天输出清洗（clean: true）：只剥代码块外的工具标签与 ---，不误伤 <parameters>", async () => {
+  const chat = "说明\n\n---\n\n<parameter name=\"a\">值</parameter> 和 <parameters> 文字\n\n```\n<parameter name=\"b\">保留</parameter>\n---\n```\n";
+  const text = strip((await lib.renderTerminalAnsi(chat, { width: 60, clean: true })).ansi);
+  assert.ok(!/─{20,}/.test(text), "代码块外的 --- 应剥掉");
+  assert.match(text, /值 和 <parameters> 文字/, "工具标签剥掉，<parameters> 保留");
+  assert.match(text, /<parameter name="b">保留<\/parameter>/, "代码块里的标签不动");
+  assert.match(text, /\d ---/, "代码块里的 --- 不动");
+});
+
+test("类型判断：已知后缀是强证据，平局以后缀为准", () => {
+  assert.equal(lib.detectFile("notes.md", "一句话。\n\n```python\ndef f(x):\n    return x\n\nimport os\nclass A:\n    pass\n```\n").kind, "markdown");
+  assert.equal(lib.detectFile("tool.py", "# 说明见 [文档](https://x.y)\n# - 第一条\n# - 第二条\nimport os\n\ndef main():\n    pass\n").lang, "python");
+  assert.equal(lib.detectFile("data.txt", '{"a": 1, "b": [1, 2]}').lang, "json", "内容足够明确时仍可推翻后缀");
 });

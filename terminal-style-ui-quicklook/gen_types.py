@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# gen_types.py —— 给 App / 扩展的 Info.plist 填文件类型（2026-09-25 Claude Code）：python3 gen_types.py <App Info.plist> <扩展 Info.plist>
+# gen_types.py —— 给 App / 扩展的 Info.plist 填文件类型：python3 gen_types.py <App Info.plist> <扩展 Info.plist>
 # Quick Look 不按宽泛类型（public.data / public.source-code）选扩展：系统自带的文本预览会先抢走代码文件，
 # 扩展必须声明文件的具体 UTI。系统认识的后缀直接列 UTI；系统不认识的（动态 dyn.* 类型，如 .go .rs .WIKI）
 # 由 App 登记自己的类型（UTImportedTypeDeclarations，后缀匹配不分大小写）。

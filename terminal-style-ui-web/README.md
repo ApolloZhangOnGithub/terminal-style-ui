@@ -88,6 +88,7 @@ tmd --color always x.md > x.ans   # 被管道接走时默认不带颜色，alway
 | `options.theme` | string | "dark" | `"dark"` / `"light"`（theme.js 配色 + 代码高亮配色；light 前端配 `ttu-light`） |
 | `options.paddingX` | number | 2 | 左右边距列数（2 = 终端 / TUI 样式，正文对齐在 ⏺ 之下；页面自带留白时传 0，VSCode / Quick Look 即如此） |
 | `options.sourceMap` | boolean | false | 同时返回块级源码映射 `blocks`（编辑器 ↔ 预览滚动联动用） |
+| `options.clean` | boolean | false | 聊天输出清洗：剥工具调用标签与独立 `---`（只给模型输出用，文档不要开） |
 
 返回：
 - `ansi`：带 ANSI 转义序列的纯文本（可用于真终端输出/调试）
@@ -117,12 +118,12 @@ tmd --color always x.md > x.ans   # 被管道接走时默认不带颜色，alway
 
 ## 支持的 Markdown 元素
 
-标题(#~######)、段落、粗体、斜体、行内代码、代码块（带语言高亮；灰色行号、不画竖线，同 Claude Code 的 Write 输出；长行折行后续行对齐代码列）、无序/有序列表、引用、表格（CSS 画线满格连续；复制出来带边框，同终端）、链接（只显示文字，OSC 8 已剥离；下划线中英文连续）。
+标题(#~######)、段落、粗体、斜体、行内代码、代码块（带语言高亮；灰色行号、不画竖线，同 Claude Code 的 Write 输出；长行折行后续行对齐代码列）、无序/有序列表、引用、表格（CSS 画线满格连续；复制出来带边框，同终端）、链接（只显示文字，OSC 8 已剥离；下划线中英文连续）、删除线、分隔线、YAML front matter（按 yaml 代码块显示）。没写语言或语言不认识的代码块按纯文本显示（不自动识别语言）。
 
 ## 特意不做（与 TUI 行为一致）
 
-- `---` 分割线：TUI 的 assistant-message 渲染管线特意剥掉独立 `---`（模型拿它当章节分隔符，字符画 hr 在终端观感差）——本库同样清洗。
-- 链接 URL：只显示链接文字（与 TUI 的 OSC 8 行为一致）。
+- 链接 URL：只显示链接文字（与 TUI 的 OSC 8 行为一致；导出的 HTML / PDF 里也不含 URL）。
+- 聊天输出清洗（`clean: true`，默认关）：剥掉模型幻觉出的工具调用标签和独立的 `---`（TUI 的 assistant-message 管线同样处理）。只用于模型输出；文档一律原样解析，代码块里的内容不动。
 
 ## 文档
 

@@ -1,4 +1,4 @@
-// core-entry.js —— dist/ttu-core.js 的打包入口（2026-09-25 Claude Code）
+// core-entry.js —— dist/ttu-core.js 的打包入口
 // 上游模块取自 vendor/upstream-jsc.mjs（npm run vendor 生成、提交进仓库），交给 core.js。
 // 产物是一个 IIFE（全局 TTU），在没有 Node 的环境里跑：Quick Look 扩展的 JavaScriptCore、浏览器。
 import { Markdown, setCapabilities, visibleWidth, wrapTextWithAnsi, themeJs, cliHighlight, hljs, chalk } from "../vendor/upstream-jsc.mjs";

@@ -1,4 +1,4 @@
-// snap.swift —— 网页整页截图（2026-09-25 Claude Code）：snap <page.html> <out.png> <视口宽 px> [读权限目录] [JS]
+// snap.swift —— 网页整页截图：snap <page.html> <out.png> <视口宽 px> [读权限目录] [JS]
 // 后台 WKWebView 加载页面（可先执行一段 JS），高度按内容撑开，2 倍像素出 PNG；不开窗口
 import AppKit
 import WebKit

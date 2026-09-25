@@ -253,12 +253,14 @@
         "terminalStyleUi.chromePath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "导出 PDF 用的 Chromium 系浏览器可执行文件。留空 = 自动查找 Chrome / Edge / Chromium / Brave。"
+          "markdownDescription": "导出 PDF 用的 Chromium 系浏览器可执行文件。留空 = 自动查找 Chrome / Edge / Chromium / Brave。",
+          "scope": "machine"
         },
         "terminalStyleUi.libraryPath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "`terminal-style-ui-web` 渲染库目录（开发调试用）。留空 = 插件自带的渲染库。"
+          "markdownDescription": "`terminal-style-ui-web` 渲染库目录（开发调试用）。留空 = 插件自带的渲染库。",
+          "scope": "machine"
         }
       }
     }

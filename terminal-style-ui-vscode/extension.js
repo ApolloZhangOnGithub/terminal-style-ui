@@ -1,4 +1,4 @@
-// extension.js —— Terminal Style UI for VSCode 入口（2026-09-25 Claude Code）
+// extension.js —— Terminal Style UI for VSCode 入口
 // 用终端 TUI 同款渲染管线显示 Markdown：扩展进程（Node）经 renderer.js 调 terminal-style-ui-web
 // 产出格子化 HTML → Webview（配渲染库自带的 terminal.css）。两个入口共用 bindWebview：
 //   1. 预览面板：命令 / 编辑器标题栏按钮打开；跟随活动的 Markdown 编辑器切换文档（同内置预览），随编辑实时刷新
@@ -185,7 +185,8 @@ function printPdf(page, outPath) {
   if (!chrome) {
     throw new Error("没有找到 Chrome / Edge / Chromium（导出 PDF 需要）。请在设置 terminalStyleUi.chromePath 指定，或先导出 HTML 再用浏览器打印");
   }
-  const source = path.join(os.tmpdir(), "terminal-style-ui-export.html"); // 固定路径，每次覆盖
+  // 每次导出单独一个临时目录（同时导出两份不会互相覆盖）；留在系统临时目录里由系统清理
+  const source = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "terminal-style-ui-export-")), "page.html");
   fs.writeFileSync(source, page);
   const args = ["--headless=new", "--disable-gpu", "--no-pdf-header-footer", `--print-to-pdf=${outPath}`, pathToFileURL(source).href];
   return new Promise((resolve, reject) => {

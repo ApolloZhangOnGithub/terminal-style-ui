@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// tmd（terminal markdown）—— 终端里的 Markdown 渲染（Terminal-Style-UI-Web，2026-09-25 Claude Code）
+// tmd（terminal markdown）—— 终端里的 Markdown 渲染
 // 与 TUI / VSCode 预览同一条渲染管线（本库 renderFileAnsi：任意文件按内容判断类型），直接输出 ANSI——终端自己画制表符、排中文，链接可点（OSC 8）。
 // 直接输出时同 Claude Code：内容进终端普通屏的滚动记录，触控板 / 滚轮原生滚动、原生拖选；不分页、没有自定义快捷键。
 //   tmd                进入交互界面（默认全屏，同 Claude Code 的 fullscreen）：下方输入框，

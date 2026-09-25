@@ -1,4 +1,4 @@
-// test/perf.js —— 预览延迟测量（2026-09-25 Claude Code）：node test/run.js --perf
+// test/perf.js —— 预览延迟测量：node test/run.js --perf
 // 在隔离的 VSCode 里打开不同大小的文档 + 侧边预览，逐个插入字符（等画出来再打下一个），统计各段耗时中位数：
 //   debounce = 编辑 → 开始渲染（防抖）   render = 渲染（插件进程）   ipc = 发出 → 预览页收到
 //   dom = 写入 DOM   paint = DOM → 画出下一帧   total = 编辑 → 画出
