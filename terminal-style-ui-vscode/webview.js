@@ -143,6 +143,25 @@
     }
     vscode.postMessage({ type: "cursorAck", row, found: !!hit, left: hit ? (rowsEl.children[row].textContent ?? "").slice(0, hit.offset) : null });
   }
+  // 滚动时右上 / 右下角显示「↑ n 行」「↓ n 行」（上下还有多少行没显示），停下 1.2 秒后淡出；看到顶 / 贴底就不显示那一个
+  const hintUp = document.createElement("div"), hintDown = document.createElement("div");
+  hintUp.className = hintDown.className = "ttu-hint";
+  hintUp.id = "ttu-hint-up";
+  hintDown.id = "ttu-hint-down";
+  document.body.append(hintUp, hintDown);
+  let hintTimer = 0;
+  function showHints() {
+    const total = rowsEl.children.length, h = rowHeight();
+    const above = Math.max(0, Math.floor((window.scrollY - origin()) / h + 0.01));
+    const below = Math.max(0, total - Math.ceil((window.scrollY + window.innerHeight - origin()) / h - 0.01));
+    hintUp.textContent = `↑ ${above} 行`;
+    hintDown.textContent = `↓ ${below} 行`;
+    hintUp.classList.toggle("on", above > 0);
+    hintDown.classList.toggle("on", below > 0);
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => { hintUp.classList.remove("on"); hintDown.classList.remove("on"); }, 1200);
+  }
+  window.addEventListener("scroll", showHints, { passive: true });
   const tpl = document.createElement("template");
   const rowsHtml = (lines) => lines.map((l) => `<div class="r">${l}</div>`).join("");
   function patchRows(start, remove, lines) {
@@ -262,6 +281,9 @@
         restored = true;
         vscode.setState({});
         scrollQuietly(0);
+        break;
+      case "testHints": // 集成测试：读出 ↑ / ↓ 提示
+        vscode.postMessage({ type: "hintsAck", up: hintUp.textContent, down: hintDown.textContent, upOn: hintUp.classList.contains("on"), downOn: hintDown.classList.contains("on") });
         break;
       case "testScroll": // 集成测试：模拟用户滚动 n 行（与滚轮同一路径）
         scrollByRows(msg.rows);

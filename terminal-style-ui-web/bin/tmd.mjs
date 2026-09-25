@@ -408,6 +408,21 @@ async function interactive(opts) {
     tui.requestRender();
   }
 
+  // 全屏时记录区上下还有多少行没显示：写在输入框上边框右侧（如「──── ↑ 12 行 · ↓ 42 行 ─」），不占正文、不另占一行；
+  // 看到顶就没有 ↑、贴底就没有 ↓。只替换纯横线的边框（输入框自己在滚动时的边框不动），宽度不变（超宽会崩）
+  const scrollHint = (line, width) => {
+    if (!view || !/^─+$/.test(stripAnsi(line))) return line;
+    const above = view.scrollTop;
+    const below = Math.max(0, view.contentHeight - view.scrollTop - view.viewportHeight);
+    const parts = [above > 0 && `↑ ${above} 行`, below > 0 && `↓ ${below} 行`].filter(Boolean);
+    if (!parts.length) return line;
+    const label = ` ${parts.join(" · ")} `;
+    const left = width - piTui.visibleWidth(label) - 2;
+    if (left < 4) return line;
+    const border = editor.borderColor ?? ((s) => s);
+    return `${border("─".repeat(left))}${theme.fg("dim", label)}${border("──")}`;
+  };
+
   let lastCtrlC = 0;
   const PROMPT = "\x1b[90m❯\x1b[0m"; // 定制版 pi-tui 输入框首行的提示符（editor.js 写死）
   const at = (editor) => `${editor.getCursor().line}:${editor.getCursor().col}:${editor.getText()}`;
@@ -422,7 +437,8 @@ async function interactive(opts) {
     // 该输入框在首行用 ❯ 顶替左边距：左右边距各 2 时首行比终端窄 1 列，在 ❯ 后补一个空格正好填满，
     // 文字与续行同列。只替换、不添加——超宽会直接崩进程（pi-tui 已知问题），万一超宽就用原行
     render(width) {
-      return super.render(width).map((line) => {
+      return super.render(width).map((line, index) => {
+        if (index === 0) return scrollHint(line, width);
         if (!line.startsWith(PROMPT)) return line;
         const spaced = `${theme.fg("dim", "❯")} ${line.slice(PROMPT.length)}`; // ❯ 用主题的 dim（同用户消息），不用调色板灰 90m
         return piTui.visibleWidth(spaced) <= width ? spaced : `${theme.fg("dim", "❯")}${line.slice(PROMPT.length)}`;

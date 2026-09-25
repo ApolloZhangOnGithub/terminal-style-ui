@@ -11,11 +11,18 @@
   pre.terminal-style-ui { margin: 0; padding: 1lh 12px; --ttu-font-size: 11px; box-sizing: border-box; min-height: 100vh; }
   .ttu-note { font: 11px -apple-system, sans-serif; color: #888; padding: 8px 12px 0; }
   #probe { position: absolute; visibility: hidden; white-space: pre; }
+  /* 滚动时右上 / 右下角的「↑ n 行」「↓ n 行」，停下 1.2 秒后淡出 */
+  .ttu-hint { position: fixed; right: 10px; z-index: 5; padding: 1px 8px; border-radius: 9px; font: 11px -apple-system, "PingFang SC", sans-serif;
+    color: #bbb; background: rgba(60, 60, 60, 0.75); opacity: 0; transition: opacity 0.35s; pointer-events: none; }
+  html.light .ttu-hint { color: #555; background: rgba(230, 230, 230, 0.85); }
+  .ttu-hint.on { opacity: 1; transition: opacity 0.1s; }
+  #hint-up { top: 8px; } #hint-down { bottom: 8px; }
   /* 同终端 / VSCode 插件：不显示滚动条 */
   html { scrollbar-width: none; }
   html::-webkit-scrollbar { display: none; }
 </style></head>
 <body><div class="ttu-note" id="note" hidden></div><pre class="terminal-style-ui" id="out"></pre>
+<div class="ttu-hint" id="hint-up"></div><div class="ttu-hint" id="hint-down"></div>
 <script>if (document.documentElement.className === "light") document.getElementById("out").className += " ttu-light";</script>
 <script src="ttu-core.js"></script>
 <script>
@@ -45,6 +52,7 @@
     if (r.detected.kind === "binary") { post("binary"); return; }
     var first = r.next();
     out.innerHTML = first == null ? "" : first;
+    totalRows = first == null ? 0 : first.split("\n").length;
     post("first");
     // 其余分块：每帧最多占 12ms，滚动 / 缩放不卡
     function pump() {
@@ -52,6 +60,7 @@
       var t = performance.now(), html;
       while ((html = r.next()) !== null) {
         out.insertAdjacentHTML("beforeend", "\n" + html);
+        totalRows += html.split("\n").length;
         if (performance.now() - t > 12) break;
       }
       if (html !== null) setTimeout(pump, 0);
@@ -98,6 +107,22 @@
     var y = gridY(gridIndex(window.scrollY));
     if (Math.abs(y - window.scrollY) > 0.5) jump(y);
   });
+
+  // 上下还有多少行：总行数 = 已追加的内容行数（分块渲染时累加）
+  var totalRows = 0, hintTimer = 0;
+  var hintUp = document.getElementById("hint-up"), hintDown = document.getElementById("hint-down");
+  function showHints() {
+    var h = rowHeight();
+    var above = Math.max(0, Math.floor((window.scrollY - origin()) / h + 0.01));
+    var below = Math.max(0, totalRows - Math.ceil((window.scrollY + window.innerHeight - origin()) / h - 0.01));
+    hintUp.textContent = "↑ " + above + " 行";
+    hintDown.textContent = "↓ " + below + " 行";
+    hintUp.classList.toggle("on", above > 0);
+    hintDown.classList.toggle("on", below > 0);
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(function () { hintUp.classList.remove("on"); hintDown.classList.remove("on"); }, 1200);
+  }
+  window.addEventListener("scroll", showHints, { passive: true });
 
   // 窗口变宽窄：列数变了才重排（同终端）
   var timer = 0;

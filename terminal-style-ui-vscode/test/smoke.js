@@ -128,6 +128,10 @@ exports.run = async () => {
     assert.ok(atTop || Math.abs(bottom - Math.round(bottom)) < 0.01, `视口底边应落在行边界上：${bottom}`);
     assert.strictEqual(Math.round(row - r0), expect, `滚轮 ${JSON.stringify(deltas)} 后应在 r0${expect >= 0 ? "+" : ""}${expect}，实际 ${row - r0}`);
   }
+  stats.lastHints = null;
+  stats.postToPreview({ type: "testHints" });
+  const hints = await waitFor("↑ / ↓ 提示回执", () => stats.lastHints);
+  assert.ok(hints.upOn && hints.downOn && /^↑ \d+ 行$/.test(hints.up) && /^↓ \d+ 行$/.test(hints.down), `滚到中间应同时显示 ↑ / ↓：${JSON.stringify(hints)}`);
   console.log("[smoke] 6b 整行滚动 OK（底边对齐；0.7 行不动 → 满 1 行走 1 行 → 反向清零 → 2.7 行走 2 行）");
 
   // 6c. 自绘选区：全选后每块整行高、对齐字符格；选中文本带表格边框（制表符格子里的透明字形）

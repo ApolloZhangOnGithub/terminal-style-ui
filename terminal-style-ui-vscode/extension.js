@@ -415,6 +415,9 @@ function bindWebview(context, panel, initialUri, isPreview = false) {
           cols = msg.cols;
           refresh();
           break;
+        case "hintsAck": // 测试用：↑ / ↓ 提示
+          stats.lastHints = msg;
+          break;
         case "cursorAck": // 测试用：光标落在哪（行、行内光标左边的文字）
           stats.lastCursor = msg;
           break;
@@ -499,6 +502,12 @@ function shellHtml(context, webview, libDir) {
   .terminal-style-ui .ttu-box::selection { color: transparent; -webkit-text-fill-color: transparent; }
   #ttu-sel { position: absolute; left: 0; top: 0; z-index: -1; pointer-events: none; user-select: none; }
   /* 每行一个块：空行也占一行高；屏幕外的行跳过排版与绘制（大文档打字时只重排改动附近） */
+  .ttu-hint { position: fixed; right: 10px; z-index: 5; padding: 1px 8px; border-radius: 9px; font: 11px -apple-system, "PingFang SC", sans-serif;
+    color: #bbb; background: rgba(60, 60, 60, 0.75); opacity: 0; transition: opacity 0.35s; pointer-events: none; }
+  html.light .ttu-hint { color: #555; background: rgba(230, 230, 230, 0.85); }
+  .ttu-hint.on { opacity: 1; transition: opacity 0.1s; }
+  #ttu-hint-up { top: 8px; }
+  #ttu-hint-down { bottom: 8px; }
   #ttu-caret { position: absolute; width: 2px; height: 1lh; background: currentColor; pointer-events: none; animation: ttu-blink 1.1s steps(1) infinite; }
   #ttu-line { position: absolute; left: 0; right: 0; height: 1lh; z-index: -1; pointer-events: none; background: rgba(255, 255, 255, 0.07); }
   html.light #ttu-line { background: rgba(0, 0, 0, 0.05); }

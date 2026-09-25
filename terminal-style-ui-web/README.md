@@ -74,7 +74,7 @@ tmd --color always x.md > x.ans   # 被管道接走时默认不带颜色，alway
 ```
 
 安装：`npm install -g @apollozhangongithub/terminal-style-ui --registry=https://npm.pkg.github.com`（GitHub Packages）；开发时 `ln -s "$PWD/bin/tmd.mjs" ~/.local/bin/tmd`（先 `npm run build`）。`-w` 可配合 vim / helix 分屏当实时预览。
-交互界面默认全屏（同 Claude Code 的 fullscreen）：记录区触控板 / 滚轮滚动，输入框固定在底部；拖选即复制，点链接打开；/tmd 路径可 Tab 补全，/clear 清空并开新会话，/exit 或 Ctrl+C 两下退出（退出后最后看到的那屏留在终端里，并提示 `tmd --resume <id>`）。会话自动存在 `~/.tmd/sessions/`。
+交互界面默认全屏（同 Claude Code 的 fullscreen）：记录区触控板 / 滚轮滚动（输入框上边框右侧显示上下还有多少行），输入框固定在底部；拖选即复制，点链接打开；/tmd 路径可 Tab 补全，/clear 清空并开新会话，/exit 或 Ctrl+C 两下退出（退出后最后看到的那屏留在终端里，并提示 `tmd --resume <id>`）。会话自动存在 `~/.tmd/sessions/`。
 直接输出与 Claude Code 一致：内容进终端的滚动记录，滚动、拖选、复制都是终端原生的；需要分页可自行 `tmd --color always x.md | less -R`。
 
 ## API
