@@ -15,7 +15,6 @@ const { render, resolveLibDir } = require("./renderer.js");
 
 const PREVIEW_TYPE = "terminalStyleUi.preview";
 const VIEWER_TYPE = "terminalStyleUi.viewer";
-const REFRESH_DEBOUNCE_MS = 40;
 const SYNC_QUIET_MS = 300; // 预览带动编辑器滚动后，这段时间内忽略编辑器回传的可见范围变化（防回环）
 const FONT_DEFAULT = 13, FONT_MIN = 6, FONT_MAX = 48;
 
@@ -259,7 +258,6 @@ function bindWebview(context, panel, initialUri, isPreview = false) {
   let key = uri.toString();
   let cols = 0;
   let latest = 0;
-  let timer;
   let disposed = false;
   let blocks = null;
   let quietEditorUntil = 0;
@@ -302,11 +300,15 @@ function bindWebview(context, panel, initialUri, isPreview = false) {
     });
   };
 
+  let shown = null; // 预览页当前显示的 { theme, lines }：新结果只和它比对、只发变化的那一段；页面重建 / 换文档时清空
+  let perf = {}; // 延迟测量：edit → start → rendered → post（毫秒时间戳），随 render 消息带给预览页补上 recv / dom / paint
   const refresh = async () => {
     // 隐藏的面板不渲染（webview 已销毁，消息会丢）；重新显示时 webview 重建并回报 ready，自然拿到最新内容
     if (!cols || disposed || !panel.visible) return;
     const seq = ++seqCounter;
     latest = seq;
+    const t = { edit: perf.edit, start: Date.now() };
+    perf = {};
     const width = config().get("width") || cols;
     const theme = effectiveTheme();
     let msg;
@@ -321,18 +323,47 @@ function bindWebview(context, panel, initialUri, isPreview = false) {
       });
       if (disposed || seq !== latest) return; // 渲染期间又触发了新一轮：丢弃过期结果
       blocks = result.blocks;
-      msg = { type: "render", seq, theme, html: result.html };
+      t.rendered = Date.now();
+      const lines = result.html.split("\n"); // 每行的 HTML 自成一体（ansiToHtml 行尾闭合样式段），可按行替换
+      if (!shown || shown.theme !== theme) {
+        msg = { type: "render", seq, theme, lines, perf: t };
+      } else {
+        const old = shown.lines;
+        let start = 0;
+        while (start < old.length && start < lines.length && old[start] === lines[start]) start++;
+        let end = 0; // 末尾相同的行数（不与开头重叠）
+        while (end < old.length - start && end < lines.length - start && old[old.length - 1 - end] === lines[lines.length - 1 - end]) end++;
+        msg = { type: "patch", seq, theme, start, remove: old.length - start - end, lines: lines.slice(start, lines.length - end), perf: t };
+      }
+      shown = { theme, lines };
     } catch (err) {
       if (disposed || seq !== latest) return;
       msg = { type: "error", seq, theme, message: `Terminal Style UI 渲染失败：${err?.stack || err}\n\n请检查设置 terminalStyleUi.libraryPath` };
     }
-    stats.last = { ...msg, width, blocks, uri: key };
+    stats.last = { ...msg, html: msg.type === "error" ? undefined : shown.lines.join("\n"), width, blocks, uri: key };
+    if (msg.perf) msg.perf.post = Date.now();
     webview.postMessage(msg);
     followEditor(); // 内容 / 列数变化后行号会移动：按编辑器当前位置重新对齐
   };
+  // 不防抖（防抖本身就是 40ms 延迟）：编辑后下一轮事件循环就渲染；渲染进行中又有编辑，就等这次做完再补一次（合并，不排队）
+  let running = false;
+  let again = false;
   const schedule = () => {
-    clearTimeout(timer);
-    timer = setTimeout(refresh, REFRESH_DEBOUNCE_MS);
+    if (running) {
+      again = true;
+      return;
+    }
+    running = true;
+    setImmediate(async () => {
+      try {
+        do {
+          again = false;
+          await refresh();
+        } while (again && !disposed);
+      } finally {
+        running = false;
+      }
+    });
   };
 
   const binding = {
@@ -345,6 +376,7 @@ function bindWebview(context, panel, initialUri, isPreview = false) {
       key = next.toString();
       blocks = null;
       if (isPreview) panel.title = titleOf(uri);
+      shown = null;
       webview.postMessage({ type: "reset" });
       refresh();
     },
@@ -356,11 +388,13 @@ function bindWebview(context, panel, initialUri, isPreview = false) {
       switch (msg.type) {
         case "ready":
         case "resize":
+          if (msg.type === "ready") shown = null; // 页面刚建好（首次 / 隐藏后重建），里面是空的
           cols = msg.cols;
           refresh();
           break;
         case "rendered":
           stats.lastAck = msg;
+          if (msg.perf) (stats.perf ??= []).push(msg.perf);
           break;
         case "scrolled": // 用户滚动预览
           stats.lastScroll = msg;
@@ -382,7 +416,10 @@ function bindWebview(context, panel, initialUri, isPreview = false) {
       }
     }),
     vscode.workspace.onDidChangeTextDocument((e) => {
-      if (e.document.uri.toString() === key && e.contentChanges.length) schedule();
+      if (e.document.uri.toString() === key && e.contentChanges.length) {
+        perf.edit ??= Date.now(); // 测延迟：这一轮渲染对应的第一次编辑
+        schedule();
+      }
     }),
     vscode.window.onDidChangeTextEditorVisibleRanges((e) => {
       if (e.textEditor.document.uri.toString() === key && Date.now() >= quietEditorUntil) followEditor(e.textEditor);
@@ -395,7 +432,6 @@ function bindWebview(context, panel, initialUri, isPreview = false) {
   ];
   panel.onDidDispose(() => {
     disposed = true;
-    clearTimeout(timer);
     bindings.delete(binding);
     for (const s of subscriptions) s.dispose();
   });
@@ -431,6 +467,8 @@ function shellHtml(context, webview, libDir) {
   .terminal-style-ui::selection, .terminal-style-ui ::selection { background: transparent; color: #000; }
   .terminal-style-ui .ttu-box::selection { color: transparent; -webkit-text-fill-color: transparent; }
   #ttu-sel { position: absolute; left: 0; top: 0; z-index: -1; pointer-events: none; user-select: none; }
+  /* 每行一个块：空行也占一行高；屏幕外的行跳过排版与绘制（大文档打字时只重排改动附近） */
+  #ttu-rows > .r { display: block; min-height: 1lh; content-visibility: auto; contain-intrinsic-size: auto 1lh; }
   #ttu-sel > div { position: absolute; background: #b5d5ff; }
   #ttu-zoom { position: fixed; top: 8px; right: 16px; padding: 2px 8px; border-radius: 4px; font: 12px var(--vscode-font-family);
     color: var(--vscode-editorWidget-foreground); background: var(--vscode-editorWidget-background);

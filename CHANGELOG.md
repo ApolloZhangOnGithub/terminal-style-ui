@@ -2,6 +2,7 @@
 
 ## 未发布
 
+- VSCode 预览跟手：打字到预览画出从 51 / 76 / 236ms（小 / 中 / 大文档）降到 12 / 11 / 13ms——去掉 40ms 防抖（改为渲染中有新编辑就做完再补一次）；只发、只替换变化的行（预览页每行一个块，屏幕外的行 `content-visibility: auto`）；渲染库按顶层块缓存 Markdown 渲染、按行缓存 ANSI → HTML（随机编辑测试逐步比对，结果与不用缓存逐字节相同）。`node test/run.js --perf` 可复测。
 - 仓库可独立构建：上游依赖打包在 `terminal-style-ui-web/vendor/` 并随仓库提交（`npm run vendor` 只在升级上游时用），`npm run build` 不需要任何运行时。
 - 单元测试（`npm test`）与 CI：类型检测、不超宽、分块 = 整篇、代码行号样式、打包版在纯 JavaScript 环境里与 Node 版逐字节一致、tmd 命令行。
 - Quick Look：构建安装后确认预览扩展已登记（同 ID 旧副本被注销时系统可能连新版一起清掉），没有就重新登记。

@@ -89,6 +89,7 @@ export function renderLines(mods, markdown, options = {}) {
   // 5. pi-tui 渲染 → ANSI（尾部填充空格剥离）；sourceMap 时记录每个顶层块渲染出的行
   const c = new piTui.Markdown(md, paddingX, 0, mdTheme);
   patchCodeGutter(c, (t) => mods.themeJs.theme.fg("dim", t));
+  if (options.blockCache !== false) cacheTopLevelTokens(c, theme);
   const topBlocks = sourceMap ? traceTopLevelTokens(c) : null;
   const lines = [...c.render(width)].map((l) => String(l).replace(/ +$/, ""));
   const blocks = sourceMap ? buildSourceMap(topBlocks, md, lineOffset, width - 2 * paddingX, lines.length, piTui.wrapTextWithAnsi) : undefined;
@@ -136,6 +137,38 @@ function patchCodeGutter(c, dim = (t) => t) {
 //     });
 //   };
 // }
+
+// 顶层块渲染缓存（编辑时只重渲染改动的块）：pi-tui 的 render() 对每个顶层块调 renderToken(token, 宽, 后一块类型)，
+// 结果只取决于这几样 + 主题——同样的原文、宽度、后一块类型、主题直接用上次的行。嵌套调用（列表项 / 引用里的块，
+// 多带一个样式上下文）照常渲染。按最近使用淘汰，最多 BLOCK_CACHE_MAX 块
+const BLOCK_CACHE_MAX = 4000;
+const blockCache = new Map();
+function cacheTopLevelTokens(c, salt) {
+  const renderToken = c.renderToken.bind(c);
+  let depth = 0;
+  c.renderToken = (token, width, nextTokenType, styleContext) => {
+    const top = depth === 0 && styleContext === undefined && token.raw;
+    const key = top && `${salt}\u0000${width}\u0000${nextTokenType}\u0000${token.type}\u0000${token.raw}`;
+    if (top && blockCache.has(key)) {
+      const lines = blockCache.get(key);
+      blockCache.delete(key); // 挪到最近使用
+      blockCache.set(key, lines);
+      return lines.slice();
+    }
+    depth++;
+    let lines;
+    try {
+      lines = renderToken(token, width, nextTokenType, styleContext);
+    } finally {
+      depth--;
+    }
+    if (top) {
+      blockCache.set(key, lines.slice());
+      if (blockCache.size > BLOCK_CACHE_MAX) blockCache.delete(blockCache.keys().next().value);
+    }
+    return lines;
+  };
+}
 
 // render() 把每个顶层 token 交给 renderToken（列表项 / 引用内的子 token 会递归进来，只记最外层）
 function traceTopLevelTokens(c) {

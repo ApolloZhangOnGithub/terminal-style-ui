@@ -41,11 +41,15 @@ export async function renderTerminalAnsi(markdown, options = {}) {
   return { ansi: lines.join("\n") };
 }
 
+// ansiToHtml 的按行缓存（每个主题一份；编辑时没变的行直接复用）
+const htmlCaches = new Map();
+const htmlCache = (theme = "dark") => htmlCaches.get(theme) ?? htmlCaches.set(theme, new Map()).get(theme);
+
 export async function renderTerminalHtml(markdown, options = {}) {
   const { lines, blocks, visibleWidth } = await renderLines(markdown, options);
   const ansi = lines.join("\n");
   // 6. 格子化 HTML（格宽用 pi-tui 的 visibleWidth——与排版同源：emoji / ①②③ 占 2 格等规则一致，表格列不错位）
-  const html = ansiToHtml(ansi, options.theme ?? "dark", { widthOf: visibleWidth });
+  const html = ansiToHtml(ansi, options.theme ?? "dark", { widthOf: visibleWidth, cache: htmlCache(options.theme) });
   return options.sourceMap ? { ansi, html, blocks } : { ansi, html };
 }
 
@@ -58,7 +62,7 @@ export async function renderFileHtml(fileName, text, options = {}) {
   const mods = await loadRuntime();
   const lines = [...core.renderFileChunks(mods, fileName, text, options)].flat();
   const ansi = lines.join("\n");
-  const html = ansiToHtml(ansi, options.theme ?? "dark", { widthOf: mods.piTui.visibleWidth });
+  const html = ansiToHtml(ansi, options.theme ?? "dark", { widthOf: mods.piTui.visibleWidth, cache: htmlCache(options.theme) });
   if (!options.sourceMap) return { ansi, html, detected };
   // 源码映射精确到行：每个带行号的渲染行就是该源码行的起点（续行不带行号），末尾补哨兵
   const blocks = [];

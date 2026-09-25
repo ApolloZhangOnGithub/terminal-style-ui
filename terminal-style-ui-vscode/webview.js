@@ -71,6 +71,18 @@
   const selLayer = document.createElement("div");
   selLayer.id = "ttu-sel";
   pre.prepend(selLayer);
+  // 渲染结果：每行一个块（.r），插件只发变化的那一段行，这里按段替换——大文档打字时不必整页重排
+  const rowsEl = document.createElement("div");
+  rowsEl.id = "ttu-rows";
+  pre.append(rowsEl);
+  const tpl = document.createElement("template");
+  const rowsHtml = (lines) => lines.map((l) => `<div class="r">${l}</div>`).join("");
+  function patchRows(start, remove, lines) {
+    const kids = rowsEl.children;
+    for (let i = 0; i < remove && kids[start]; i++) kids[start].remove();
+    tpl.innerHTML = rowsHtml(lines);
+    rowsEl.insertBefore(tpl.content, kids[start] ?? null);
+  }
   function paintSelection() {
     const blocks = [];
     const sel = document.getSelection();
@@ -142,22 +154,29 @@
 
   window.addEventListener("message", (event) => {
     const msg = event.data;
+    const recv = Date.now();
     switch (msg.type) {
       case "render":
+      case "patch":
       case "error": {
         const light = msg.theme === "light";
         document.documentElement.classList.toggle("light", light);
         pre.classList.toggle("ttu-light", light);
         pre.classList.toggle("ttu-error", msg.type === "error");
-        if (msg.type === "render") pre.innerHTML = msg.html;
-        else pre.textContent = msg.message;
-        pre.prepend(selLayer);
+        if (msg.type === "render") rowsEl.innerHTML = rowsHtml(msg.lines);
+        else if (msg.type === "patch") patchRows(msg.start, msg.remove, msg.lines);
+        else rowsEl.textContent = msg.message;
         if (!restored) {
           restored = true;
           const state = vscode.getState();
           if (state && state.scrollY) scrollQuietly(snapY(state.scrollY));
         }
-        vscode.postMessage({ type: "rendered", seq: msg.seq, cols });
+        const perf = msg.perf && { ...msg.perf, recv, dom: Date.now() };
+        if (perf) requestAnimationFrame(() => requestAnimationFrame(() => {
+          perf.paint = Date.now();
+          vscode.postMessage({ type: "rendered", seq: msg.seq, cols, perf });
+        }));
+        else vscode.postMessage({ type: "rendered", seq: msg.seq, cols });
         break;
       }
       case "scrollToRow": // 让该行贴顶再吸附到行格（底边对齐）；文首（第 0 行）滚到页顶，保留顶部留白

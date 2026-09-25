@@ -28,7 +28,7 @@ const child = spawn(CODE, [
   `--user-data-dir=${path.join(tmp, "user-data")}`,
   `--extensions-dir=${path.join(tmp, "extensions")}`,
   `--extensionDevelopmentPath=${root}`,
-  `--extensionTestsPath=${path.join(__dirname, "smoke.js")}`,
+  `--extensionTestsPath=${path.join(__dirname, process.argv.includes("--perf") ? "perf.js" : "smoke.js")}`, // --perf：延迟测量
   "--disable-workspace-trust",
   "--skip-welcome",
   "--skip-release-notes",

@@ -157,8 +157,21 @@ export function ansiToHtml(ansi, theme = "dark", options = {}) {
     }
   };
 
+  // options.cache（Map）：按「行首样式状态 + 行内容」缓存每行的 HTML 与行尾状态——编辑时没变的行直接复用
+  const cache = options.cache;
+  const stateKey = () => `${color ? color.join(",") : ""}|${+bold}${+dim}${+italic}${+underline}`;
   ansi.split("\n").forEach((line, i) => {
-    if (i) { setRun(style); out += "\n"; }
+    // 每行结尾都关掉样式段、下一行再重新打开：每一行的 HTML 自成一体（预览页按行增量替换，不能有跨行的 <span>）
+    if (i) out += "\n";
+    const key = cache && `${stateKey()}\u0001${line}`;
+    const hit = cache && cache.get(key);
+    if (hit) {
+      out += hit.html;
+      [color, bold, dim, italic, underline] = hit.end;
+      updateStyle();
+      return;
+    }
+    const start = out.length;
     const grid = (line.match(BOX_CHARS_RE) || []).length >= 2;
     let last = 0;
     for (const m of line.matchAll(ESCAPE_RE)) {
@@ -169,6 +182,11 @@ export function ansiToHtml(ansi, theme = "dark", options = {}) {
       // 其余 CSI（光标移动/清行等）与 OSC（含 OSC 8 超链接）整段剥离
     }
     if (last < line.length) text(line.slice(last), grid);
+    setRun("");
+    if (cache) {
+      cache.set(key, { html: out.slice(start), end: [color, bold, dim, italic, underline] });
+      if (cache.size > (options.cacheMax ?? 20000)) cache.delete(cache.keys().next().value);
+    }
   });
   setRun("");
   return out;

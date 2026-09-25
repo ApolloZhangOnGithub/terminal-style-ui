@@ -99,3 +99,23 @@ test("tmd 命令行：直接输出与 stdin", () => {
   assert.match(piped, /^ {2}你好$/m, "stdin 按 Markdown 渲染");
   assert.equal(execFileSync("node", [tmd, "--version"], { encoding: "utf8" }).trim(), `tmd ${JSON.parse(read(path.join(root, "package.json"))).version}`);
 });
+
+test("缓存（块缓存 + 行缓存）不改变结果：随机编辑 60 次，逐步与不用缓存的结果比对", async () => {
+  let seed = 42;
+  const rand = (n) => ((seed = (seed * 1103515245 + 12345) % 2147483648), seed % n);
+  const inserts = ["x", "中", "\n", "|", "`", "# ", "- ", "**", "\n\n", "```\n"];
+  for (const [name, original] of [samples[0], samples[2]]) {
+    let text = original;
+    for (let step = 0; step < 60; step++) {
+      const at = rand(text.length + 1);
+      text = rand(4) === 0 ? text.slice(0, at) + text.slice(Math.min(text.length, at + 1 + rand(8))) : text.slice(0, at) + inserts[rand(inserts.length)] + text.slice(at);
+      for (const theme of ["dark", "light"]) {
+        const cached = await lib.renderTerminalHtml(text, { width: 70, theme, sourceMap: true, paddingX: 0 });
+        const plain = await lib.renderTerminalHtml(text, { width: 70, theme, sourceMap: true, paddingX: 0, blockCache: false });
+        assert.equal(cached.ansi, plain.ansi, `${name} 第 ${step} 步 ${theme}：块缓存改变了 ANSI`);
+        assert.deepEqual(cached.blocks, plain.blocks, `${name} 第 ${step} 步：源码映射不同`);
+        assert.equal(cached.html, lib.ansiToHtml(plain.ansi, theme, { widthOf: visibleWidth }), `${name} 第 ${step} 步 ${theme}：行缓存改变了 HTML`);
+      }
+    }
+  }
+});
