@@ -7,7 +7,7 @@
 <p align="center">终端 TUI 风格的 Markdown / 任意文件渲染——终端里、VSCode 里、访达里，看到的都和终端一模一样。</p>
 
 <p align="center">
-<a href="https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases/latest"><img src="https://img.shields.io/github/v/release/ApolloZhangOnGithub/terminal-style-ui?label=release&color=5fd068" alt="Release"></a> <a href="https://github.com/ApolloZhangOnGithub/terminal-style-ui/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a> <a href="https://github.com/ApolloZhangOnGithub/terminal-style-ui/actions/workflows/publish-package.yml"><img src="https://github.com/ApolloZhangOnGithub/terminal-style-ui/actions/workflows/publish-package.yml/badge.svg" alt="Publish package"></a> <a href="https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases"><img src="https://img.shields.io/github/downloads/ApolloZhangOnGithub/terminal-style-ui/total?color=orange" alt="Downloads"></a>
+<a href="https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases/latest"><img src="https://img.shields.io/github/v/release/ApolloZhangOnGithub/terminal-style-ui?label=release&color=5fd068" alt="Release"></a> <a href="https://github.com/ApolloZhangOnGithub/terminal-style-ui/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a> <a href="https://github.com/ApolloZhangOnGithub/terminal-style-ui/actions/workflows/ci.yml"><img src="https://github.com/ApolloZhangOnGithub/terminal-style-ui/actions/workflows/ci.yml/badge.svg" alt="CI"></a> <a href="https://github.com/ApolloZhangOnGithub/terminal-style-ui/actions/workflows/publish-package.yml"><img src="https://github.com/ApolloZhangOnGithub/terminal-style-ui/actions/workflows/publish-package.yml/badge.svg" alt="Publish package"></a> <a href="https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases"><img src="https://img.shields.io/github/downloads/ApolloZhangOnGithub/terminal-style-ui/total?color=orange" alt="Downloads"></a>
 <br>
 <a href="https://github.com/ApolloZhangOnGithub/terminal-style-ui/pkgs/npm/terminal-style-ui"><img src="https://img.shields.io/badge/npm-@apollozhangongithub%2Fterminal--style--ui-cb3837?logo=npm" alt="GitHub Packages"></a> <img src="https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white" alt="Node"> <img src="https://img.shields.io/badge/VSCode-%E2%89%A51.90-007ACC?logo=visualstudiocode&logoColor=white" alt="VSCode"> <img src="https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white" alt="macOS"> <a href="https://github.com/ApolloZhangOnGithub/terminal-style-ui"><img src="https://img.shields.io/github/stars/ApolloZhangOnGithub/terminal-style-ui?style=social" alt="Stars"></a>
 </p>
@@ -68,6 +68,8 @@
 
 ## 开发
 
-- 构建：`cd terminal-style-ui-web && npm install && npm run build`（打包上游依赖；构建时需要一份含定制版 pi-tui 的 runtime，位置由 `TSU_RUNTIME` 或 `~/.local/lib/terminal-style-ui/runtime` 给出）
+- 构建与测试：`cd terminal-style-ui-web && npm ci && npm run build && npm test`——不需要任何运行时，CI 每次推送都会跑
+- 上游依赖（定制版 pi-tui、主题、高亮、chalk）打包在 `terminal-style-ui-web/vendor/`，随仓库提交；只有升级它们时才需要 `npm run vendor`（要一份定制版 runtime，位置由 `TSU_RUNTIME` 或 `~/.local/lib/terminal-style-ui/runtime` 给出）
+- VSCode 插件：`cd terminal-style-ui-vscode && npm run package`；Quick Look：`cd terminal-style-ui-quicklook && ./build.sh`（需要 Xcode）
 - 配图：`media/make.sh` 一键重拍（演示文件 `media/demo.md`、`media/demo.py`，截图里不含本机路径）；`./make.sh --finder` 另拍真实的访达 + 快速查看（会临时接管访达、切换系统深浅色，拍完恢复）
 - 变更记录：[CHANGELOG.md](CHANGELOG.md)

@@ -1,0 +1,41 @@
+# 每次推送 / PR：构建渲染库（只用仓库里的 vendor/，不需要定制版 runtime）并跑单元测试；另打一个 VSCode 插件包验证打包
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terminal-style-ui-web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+
+  vscode-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+        working-directory: terminal-style-ui-web
+      - run: npm run package
+        working-directory: terminal-style-ui-vscode
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vsix
+          path: terminal-style-ui-vscode/*.vsix

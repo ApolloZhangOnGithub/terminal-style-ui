@@ -8,9 +8,10 @@
     "tmd": "bin/tmd.mjs"
   },
   "scripts": {
-    "build": "node scripts/build-core.mjs",
-    "build:core": "node scripts/build-core.mjs",
-    "prepack": "node scripts/build-core.mjs"
+    "build": "node scripts/build.mjs",
+    "vendor": "node scripts/vendor.mjs",
+    "test": "node --test test/",
+    "prepack": "node scripts/build.mjs"
   },
   "license": "MIT",
   "devDependencies": {

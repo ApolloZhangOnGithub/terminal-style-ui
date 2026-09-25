@@ -1,6 +1,9 @@
-// build-core.mjs —— 打包 dist/ttu-core.js（JavaScriptCore / 浏览器）与 dist/runtime.mjs（Node）（2026-09-25 Claude Code）：node scripts/build-core.mjs [runtimePath]
-// 把 core.js + runtime 里的 pi-tui（override 版 markdown）/ theme.js / cli-highlight / chalk 打成一个 IIFE（全局 TTU），
-// 不依赖 Node：Node 内置模块换成替身（fs 只认内联进来的 dark.json / light.json 主题，其余是无害的空实现）。
+// vendor.mjs —— 从定制版 runtime 生成 vendor/（2026-09-25 Claude Code）：node scripts/vendor.mjs [runtimePath]（npm run vendor）
+// 只在升级上游依赖时跑，需要一份含定制版 pi-tui 的 runtime（参数 / TSU_RUNTIME / ~/.local/lib/terminal-style-ui/runtime）。
+// 产物提交进仓库，npm run build 只用它们，不需要 runtime：
+//   vendor/upstream-jsc.mjs  JavaScriptCore / 浏览器用：Node 内置模块换成替身（fs 只认内联的 dark / light 主题与 package.json）
+//   vendor/upstream-node.mjs Node 用：真 Node 内置模块；theme.js 的 config.js 换成 config-shim.js
+//   vendor/themes/*.json     内置主题
 import * as esbuild from "esbuild";
 import fs from "node:fs";
 import os from "node:os";
@@ -45,42 +48,17 @@ api.win32 = api; api.posix = api; api.promises = api;
 module.exports = api;
 `;
 
-// 纯 JavaScriptCore（Quick Look 扩展里的 JSContext）没有 Node / 浏览器全局：补 process、UTF-8 编解码、console、定时器
-const POLYFILLS = `
-var global = globalThis; if (typeof globalThis.window === "undefined") globalThis.window = globalThis;
-var process = globalThis.process || { env: { COLORTERM: "truecolor", FORCE_COLOR: "3" }, platform: "darwin", versions: {}, argv: [], cwd: function () { return "/"; }, on: function () {}, emitWarning: function () {}, stdout: {}, stderr: {} };
-if (typeof globalThis.TextEncoder === "undefined") {
-  globalThis.TextEncoder = function () {};
-  globalThis.TextEncoder.prototype.encode = function (s) { var b = unescape(encodeURIComponent(String(s === undefined ? "" : s))), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; };
-  globalThis.TextDecoder = function () {};
-  globalThis.TextDecoder.prototype.decode = function (a) { if (!a) return ""; var u = a instanceof Uint8Array ? a : new Uint8Array(a.buffer || a), s = ""; for (var i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); try { return decodeURIComponent(escape(s)); } catch (e) { return s; } };
-}
-if (typeof globalThis.URL === "undefined") {
-  globalThis.URL = function (u, base) {
-    u = String(u);
-    this.href = base !== undefined && !/^[a-z][\\w+.-]*:/i.test(u) ? String(base).replace(/[^/]*$/, "") + u : u;
-    var m = /^([a-z][\\w+.-]*:)(?:\\/\\/([^/]*))?([^?#]*)/i.exec(this.href) || [];
-    this.protocol = m[1] || ""; this.host = this.hostname = m[2] || ""; this.pathname = m[3] || ""; this.search = ""; this.hash = "";
-  };
-  globalThis.URL.prototype.toString = function () { return this.href; };
-}
-if (typeof globalThis.console === "undefined") globalThis.console = { log: function () {}, warn: function () {}, error: function () {}, debug: function () {}, info: function () {} };
-if (typeof globalThis.setTimeout === "undefined") { globalThis.setTimeout = function (f) { return 0; }; globalThis.clearTimeout = function () {}; globalThis.setInterval = function () { return 0; }; globalThis.clearInterval = function () {}; }
-if (typeof globalThis.queueMicrotask === "undefined") globalThis.queueMicrotask = function (f) { Promise.resolve().then(f); };
-`;
 
 await esbuild.build({
-  entryPoints: [path.join(root, "scripts/core-entry.js")],
-  outfile: path.join(root, "dist/ttu-core.js"),
+  entryPoints: [path.join(root, "scripts/upstream-jsc-entry.js")],
+  outfile: path.join(root, "vendor/upstream-jsc.mjs"),
   bundle: true,
-  format: "iife",
-  globalName: "TTU",
+  format: "esm",
   platform: "browser",
   target: "safari16",
   minify: true,
   legalComments: "eof",
   define: { "import.meta.url": '"file:///ttu-core/"' },
-  banner: { js: POLYFILLS },
   logLevel: "warning",
   plugins: [{
     name: "ttu-runtime",
@@ -102,16 +80,14 @@ await esbuild.build({
     },
   }],
 });
-const size = fs.statSync(path.join(root, "dist/ttu-core.js")).size;
-console.log(`dist/ttu-core.js ${(size / 1024).toFixed(0)} KB`);
 
-// 2. dist/runtime.mjs —— Node 侧（index.js / tmd / VSCode 插件）的上游模块，ESM；真 Node 内置模块照常用，
-// 只把 theme.js 引的 config.js 换成 config-shim.js（主题 JSON 随包放 dist/themes/）
-fs.mkdirSync(path.join(root, "dist/themes"), { recursive: true });
-for (const [name, text] of Object.entries(themes)) fs.writeFileSync(path.join(root, "dist/themes", name), text);
+
+// Node 侧：真 Node 内置模块照常用，只把 theme.js 引的 config.js 换成 config-shim.js（主题 JSON 在 vendor/themes/，build 拷到 dist/themes/）
+fs.mkdirSync(path.join(root, "vendor/themes"), { recursive: true });
+for (const [name, text] of Object.entries(themes)) fs.writeFileSync(path.join(root, "vendor/themes", name), text);
 await esbuild.build({
-  entryPoints: [path.join(root, "scripts/runtime-entry.js")],
-  outfile: path.join(root, "dist/runtime.mjs"),
+  entryPoints: [path.join(root, "scripts/upstream-node-entry.js")],
+  outfile: path.join(root, "vendor/upstream-node.mjs"),
   bundle: true,
   format: "esm",
   platform: "node",
@@ -137,7 +113,7 @@ await esbuild.build({
 });
 // 上游定制版里写死的日志 / 调试目录（家目录下它自己的隐藏目录，如 ~/.<名>/agent、~/.<名>/LogData）改到 ~/.terminal-style-ui/——
 // 装了本工具的人不该多出一个无关目录。目录名从代码里认出来（homedir 旁的 "agent"、路径里的 /LogData），不写死
-for (const f of ["dist/runtime.mjs", "dist/ttu-core.js"]) {
+for (const f of ["vendor/upstream-node.mjs", "vendor/upstream-jsc.mjs"]) {
   const p = path.join(root, f);
   let text = fs.readFileSync(p, "utf8");
   const names = new Set([...text.matchAll(/"\.([a-z]+)","agent"/g), ...text.matchAll(/\/\.([a-z]+)\/LogData/g)].map((m) => m[1]));
@@ -145,4 +121,4 @@ for (const f of ["dist/runtime.mjs", "dist/ttu-core.js"]) {
   for (const name of names) text = text.replaceAll(`".${name}"`, '".terminal-style-ui"').replaceAll(`/.${name}/`, "/.terminal-style-ui/");
   fs.writeFileSync(p, text);
 }
-console.log(`dist/runtime.mjs ${(fs.statSync(path.join(root, "dist/runtime.mjs")).size / 1024).toFixed(0)} KB`);
+for (const f of ["vendor/upstream-node.mjs", "vendor/upstream-jsc.mjs"]) console.log(`${f} ${(fs.statSync(path.join(root, f)).size / 1024).toFixed(0)} KB`);

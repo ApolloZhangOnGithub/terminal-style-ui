@@ -2,6 +2,8 @@
 
 ## 未发布
 
+- 仓库可独立构建：上游依赖打包在 `terminal-style-ui-web/vendor/` 并随仓库提交（`npm run vendor` 只在升级上游时用），`npm run build` 不需要任何运行时。
+- 单元测试（`npm test`）与 CI：类型检测、不超宽、分块 = 整篇、代码行号样式、打包版在纯 JavaScript 环境里与 Node 版逐字节一致、tmd 命令行。
 - Quick Look：构建安装后确认预览扩展已登记（同 ID 旧副本被注销时系统可能连新版一起清掉），没有就重新登记。
 - tmd：管道输入（没有文件名）判断不出类型时按 Markdown 渲染（原先当纯文本，带上了行号）。
 

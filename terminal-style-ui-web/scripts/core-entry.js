@@ -1,13 +1,7 @@
 // core-entry.js —— dist/ttu-core.js 的打包入口（2026-09-25 Claude Code）
-// 静态引入渲染需要的 runtime 模块（RT/ 前缀由 build-core.mjs 解析到 runtime），交给 core.js。
+// 上游模块取自 vendor/upstream-jsc.mjs（npm run vendor 生成、提交进仓库），交给 core.js。
 // 产物是一个 IIFE（全局 TTU），在没有 Node 的环境里跑：Quick Look 扩展的 JavaScriptCore、浏览器。
-import { Markdown } from "RT/@earendil-works/pi-tui/dist/components/markdown.js";
-import { setCapabilities } from "RT/@earendil-works/pi-tui/dist/terminal-image.js";
-import { visibleWidth, wrapTextWithAnsi } from "RT/@earendil-works/pi-tui/dist/utils.js";
-import * as themeJs from "RT/@earendil-works/pi-coding-agent/dist/modes/interactive/theme/theme.js";
-import * as cliHighlight from "RT/cli-highlight/dist/index.js";
-import hljs from "RT/highlight.js/lib/index.js";
-import chalk from "RT/chalk/source/index.js";
+import { Markdown, setCapabilities, visibleWidth, wrapTextWithAnsi, themeJs, cliHighlight, hljs, chalk } from "../vendor/upstream-jsc.mjs";
 import * as core from "../core.js";
 import { ansiToHtml } from "../ansi-to-html.js";
 

@@ -11,5 +11,5 @@
 # 2026-09-25 Claude Code：渲染逻辑拆到 core.js（与 Quick Look 打包版共用）；本文件只剩按 runtimePath 装载模块（缓存，失败不缓存）与 API 包装。
 # 新增 renderFileHtml(fileName, text, options)（任意文件：detectFile → fileToMarkdown → renderTerminalHtml，另返回 detected）；导出 detectFile / fileToMarkdown。
 # 2026-09-25（用户定稿）：代码块行号栏改为灰色行号 + 空格、不画竖线（core.js patchCodeGutter；画竖线的旧版 patchCodeGutterBar 注释保留）。
-# 0.1.0：上游模块改从 dist/runtime.mjs 装载（scripts/runtime-entry.js 打包：pi-tui、theme.js、cli-highlight + hljs、chalk、tmd 的 SYM / UserMessageComponent），
+# 0.1.0：上游模块改从 dist/runtime.mjs 装载（scripts/upstream-node-entry.js → vendor/upstream-node.mjs → build 拷成 dist/runtime.mjs：pi-tui、theme.js、cli-highlight + hljs、chalk、tmd 的 SYM / UserMessageComponent），
 # 不再有 runtimePath；新增 renderFileAnsi（终端用：代码按 width−2×paddingX 排好整体缩进）、loadTerminalKit().createFileView / components、getVisibleWidth。

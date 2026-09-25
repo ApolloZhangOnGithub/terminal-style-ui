@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const here = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const web = path.resolve(here, "../terminal-style-ui-web");
 const lib = path.join(here, "lib");
-execFileSync("node", ["scripts/build-core.mjs"], { cwd: web, stdio: "inherit" }); // 先重新打包上游模块
+execFileSync("node", ["scripts/build.mjs"], { cwd: web, stdio: "inherit" }); // 先生成 dist/（只用 vendor/，不需要定制版 runtime）
 const files = ["index.js", "core.js", "ansi-to-html.js", "highlight-themes.js", "terminal.css", "dist/runtime.mjs", "dist/themes/dark.json", "dist/themes/light.json"];
 for (const f of files) {
   fs.mkdirSync(path.dirname(path.join(lib, f)), { recursive: true });

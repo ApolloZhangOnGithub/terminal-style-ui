@@ -11,7 +11,7 @@
 
 ## 2. 构建时依赖定制版 pi-tui
 
-运行时没有外部依赖：pi-tui、theme.js、cli-highlight、chalk 都已打进 `dist/runtime.mjs` / `dist/ttu-core.js`（0.1.0 起）。但**重新打包**时要一份含定制版 pi-tui 的 runtime（`TSU_RUNTIME` 或 `~/.local/lib/terminal-style-ui/runtime`）：pi-tui 的 markdown.js 是定制版（标题无下划线、代码块无围栏），用 npm 原版打包视觉会退回 pi 原生风格。
+运行时没有外部依赖：pi-tui、theme.js、cli-highlight、chalk 都已打进 `dist/runtime.mjs` / `dist/ttu-core.js`（0.1.0 起）。构建（`npm run build`）只用仓库里的 `vendor/`；但**升级上游**（`npm run vendor`）时要一份含定制版 pi-tui 的 runtime（`TSU_RUNTIME` 或 `~/.local/lib/terminal-style-ui/runtime`）：pi-tui 的 markdown.js 是定制版（标题无下划线、代码块无围栏），用 npm 原版打包视觉会退回 pi 原生风格。
 
 ## 3. 字体平台绑定
 

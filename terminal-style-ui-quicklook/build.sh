@@ -14,7 +14,7 @@ TARGET="arm64-apple-macos13.0"
 IDENTITY="${TMD_SIGN_IDENTITY:-$(security find-identity -v -p codesigning | awk -F'"' '/Apple Development/ {print $2; exit}')}"
 [[ -n "$IDENTITY" ]] || IDENTITY="-" # 没有证书时临时签名（扩展可能不被系统加载）
 
-(cd "$WEB" && node scripts/build-core.mjs)
+(cd "$WEB" && node scripts/build.mjs) # 只用仓库里的 vendor/，不需要定制版 runtime
 
 mkdir -p "$APP/Contents/MacOS" "$APPEX/Contents/MacOS" "$APPEX/Contents/Resources"
 cp -X App/Info.plist "$APP/Contents/Info.plist"

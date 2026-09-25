@@ -1,5 +1,5 @@
 node_modules/
-# 构建产物（build.sh / npm run build:core / npm run package 生成）
+# 构建产物（build.sh / npm run build / npm run package 生成）；vendor/ 是上游依赖，要提交
 dist/
 build/
 *.vsix
