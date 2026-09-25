@@ -16,7 +16,12 @@ process.env.COLORTERM = "truecolor";
 // cli-highlight + highlight.js、chalk。动态 import：上面的环境变量要在 chalk / pi-tui 装载前设好。渲染逻辑本身在 core.js
 let runtime;
 function loadRuntime() {
-  runtime ??= import("./dist/runtime.mjs").then((r) => ({
+  runtime ??= import("./dist/runtime.mjs").then((r) => {
+    // chalk 的色深直接定死真彩（同打包版 core-entry.js）：只靠 FORCE_COLOR 时，chalk 仍会按运行环境自行判断，
+    // 在 CI 等环境里可能判成无色，代码高亮整段丢色
+    r.chalk.level = 3;
+    return r;
+  }).then((r) => ({
     piTui: r.piTui, themeJs: r.themeJs, chalk: r.chalk,
     highlight: r.cliHighlight.highlight, supportsLanguage: r.cliHighlight.supportsLanguage,
     hljs: r.hljs, cliTheme: r.cliHighlight, // 代码高亮快路径（core.js fastHighlight）
