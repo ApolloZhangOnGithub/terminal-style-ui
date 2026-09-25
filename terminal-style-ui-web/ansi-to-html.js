@@ -91,6 +91,9 @@ export function charWidth(ch) {
 // 转义序列：CSI（ESC [ 参数 中间字节 终止字节）/ OSC（ESC ] … BEL 或 ESC \，未终止则到串尾）/ 其他两字节 ESC 序列
 const ESCAPE_RE = /\x1b\[[0-?]*[ -\/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\|$)|\x1b[\s\S]?/g;
 const SGR_RE = /^\x1b\[([0-9;]*)m$/;
+const OSC8_RE = /^\x1b\]8;[^;]*;([^\x07\x1b]*)/; // OSC 8 超链接：ESC ] 8 ; 参数 ; URL（URL 为空 = 链接结束）
+const SAFE_URL_RE = /^(?:https?:|mailto:)/i; // 只把这几种变成链接（不接受 javascript: 等）
+const escAttr = (s) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const ASCII_RE = /^[\x00-\x7e]+$/;
 const BOX_CHARS_RE = new RegExp(`[${Object.keys(BOX_ARMS).join("")}]`, "g");
 // 整格模式的格子：宽字素 = 1 格字形（溢出到右邻）+ 空格子补足宽度
@@ -163,9 +166,13 @@ export function ansiToHtml(ansi, theme = "dark", options = {}) {
     }
   };
 
+  // options.links：OSC 8 超链接输出成 <a href>（默认剥掉只留文字，同终端观感）；链接跨行时每行结尾闭合、下一行重开
+  const links = !!options.links;
+  let href = null;
+  const openLink = () => { if (href) out += `<a href="${escAttr(href)}">`; };
   // options.cache（Map）：按「行首样式状态 + 行内容」缓存每行的 HTML 与行尾状态——编辑时没变的行直接复用
   const cache = options.cache;
-  const stateKey = () => `${color ? color.join(",") : ""}|${+bold}${+dim}${+italic}${+underline}${+strike}`;
+  const stateKey = () => `${color ? color.join(",") : ""}|${+bold}${+dim}${+italic}${+underline}${+strike}|${links ? href ?? "" : ""}`;
   ansi.split("\n").forEach((line, i) => {
     // 每行结尾都关掉样式段、下一行再重新打开：每一行的 HTML 自成一体（预览页按行增量替换，不能有跨行的 <span>）
     if (i) out += "\n";
@@ -173,11 +180,12 @@ export function ansiToHtml(ansi, theme = "dark", options = {}) {
     const hit = cache && cache.get(key);
     if (hit) {
       out += hit.html;
-      [color, bold, dim, italic, underline, strike] = hit.end;
+      [color, bold, dim, italic, underline, strike, href] = hit.end;
       updateStyle();
       return;
     }
     const start = out.length;
+    if (links) openLink();
     const grid = (line.match(BOX_CHARS_RE) || []).length >= 2;
     let last = 0;
     for (const m of line.matchAll(ESCAPE_RE)) {
@@ -185,12 +193,20 @@ export function ansiToHtml(ansi, theme = "dark", options = {}) {
       last = m.index + m[0].length;
       const sgr = SGR_RE.exec(m[0]);
       if (sgr) applySgr(sgr[1]);
+      const osc8 = links && OSC8_RE.exec(m[0]);
+      if (osc8) {
+        setRun("");
+        if (href) out += "</a>";
+        href = osc8[1] && SAFE_URL_RE.test(osc8[1]) ? osc8[1] : null;
+        openLink();
+      }
       // 其余 CSI（光标移动/清行等）与 OSC（含 OSC 8 超链接）整段剥离
     }
     if (last < line.length) text(line.slice(last), grid);
     setRun("");
+    if (links && href) out += "</a>";
     if (cache) {
-      cache.set(key, { html: out.slice(start), end: [color, bold, dim, italic, underline, strike] });
+      cache.set(key, { html: out.slice(start), end: [color, bold, dim, italic, underline, strike, href] });
       if (cache.size > (options.cacheMax ?? 20000)) cache.delete(cache.keys().next().value);
     }
   });

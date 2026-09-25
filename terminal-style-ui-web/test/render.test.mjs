@@ -179,3 +179,12 @@ test("类型判断：已知后缀是强证据，平局以后缀为准", () => {
   assert.equal(lib.detectFile("tool.py", "# 说明见 [文档](https://x.y)\n# - 第一条\n# - 第二条\nimport os\n\ndef main():\n    pass\n").lang, "python");
   assert.equal(lib.detectFile("data.txt", '{"a": 1, "b": [1, 2]}').lang, "json", "内容足够明确时仍可推翻后缀");
 });
+
+test("ansiToHtml links：OSC 8 转 <a>，只放行 http(s) / mailto", async () => {
+  const { ansi } = await lib.renderTerminalAnsi("[仓库](https://example.com/a?b=1&c=2) 和 [坏](javascript:alert(1))", { width: 60 });
+  const html = lib.ansiToHtml(ansi, "dark", { widthOf: visibleWidth, links: true });
+  assert.match(html, /<a href="https:\/\/example\.com\/a\?b=1&amp;c=2">/);
+  assert.ok(!/javascript:/.test(html.match(/<a [^>]*>/g)?.join("") ?? ""), "javascript: 不生成链接");
+  assert.equal((html.match(/<a /g) || []).length, (html.match(/<\/a>/g) || []).length, "<a> 成对闭合");
+  assert.ok(!/<a /.test(lib.ansiToHtml(ansi, "dark", { widthOf: visibleWidth })), "默认不生成链接");
+});

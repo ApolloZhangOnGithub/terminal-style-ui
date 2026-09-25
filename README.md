@@ -73,3 +73,4 @@
 - VSCode 插件：`cd terminal-style-ui-vscode && npm run package`；Quick Look：`cd terminal-style-ui-quicklook && ./build.sh`（需要 Xcode）
 - 配图：`media/make.sh` 一键重拍（演示文件 `media/demo.md`、`media/demo.py`，截图里不含本机路径）；`./make.sh --finder` 另拍真实的访达 + 快速查看（会临时接管访达、切换系统深浅色，拍完恢复）
 - 变更记录：[CHANGELOG.md](CHANGELOG.md)
+- 博客：[一天做出三个产品](https://apollozhangongithub.github.io/terminal-style-ui/)（页面本身由本项目渲染，源文件 `docs/blog.md`，`node docs/build.mjs` 生成）
