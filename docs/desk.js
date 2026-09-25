@@ -8,7 +8,7 @@
   var mobile = function () { return matchMedia("(max-width: 600px)").matches; };
   var EDGE = 6; // 边缘多宽算“拉大小”
   // 液态玻璃的边缘折射要 backdrop-filter: url(#lg)，目前只有 Chromium 支持；其余浏览器只用模糊 + 高光
-  if (window.chrome && CSS.supports("backdrop-filter", "url(#lg)")) root.classList.add("refract");
+  if (window.chrome && CSS.supports("backdrop-filter", "url(#lg-bar)")) root.classList.add("refract");
 
   // ---- 菜单栏时钟：同 macOS 中文格式「9月25日 周五  22:50:07」（显示秒）----
   function tick() {
@@ -235,7 +235,7 @@
     pane.querySelectorAll('[data-set="wall"] button').forEach(function (b) { b.classList.toggle("on", b.dataset.v === prefs.wall); });
     pane.querySelector('[data-set="motion"]').checked = prefs.motion;
     pane.querySelector('[data-set="motion"]').disabled = !WALLS[prefs.wall];
-    var font = localStorage.getItem("tsu-font") || 14, tps = window.TSU_APP ? window.TSU_APP.tps : 80;
+    var font = localStorage.getItem("tsu-font") || 13, tps = window.TSU_APP ? window.TSU_APP.tps : 80;
     pane.querySelector('[data-set="font"]').value = font;
     pane.querySelector('[data-out="font"]').textContent = font + " px";
     pane.querySelector('[data-set="tps"]').value = tps;

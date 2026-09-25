@@ -94,13 +94,13 @@ html.light .bar { background: #ececec; border-bottom-color: #d4d4d4; color: #666
 #topgap.on { visibility: visible; }
 /* Jump to bottom：往回翻时浮在对话区底部正中，指上去稍亮一点 */
 #jump { position: absolute; left: 50%; transform: translateX(-50%); bottom: 0; z-index: 4; margin: 0; padding: 0 1ch; display: none; cursor: pointer;
-  white-space: pre; background: #3a3a3a; color: #eee; --ttu-font-size: 14px; transition: background 0.12s; }
+  white-space: pre; background: #3a3a3a; color: #eee; --ttu-font-size: 13px; transition: background 0.12s; }
 #jump:hover { background: #4d4d4d; color: #fff; }
 #jump.ttu-light { background: #dcdcdc; color: #111; }
 #jump.ttu-light:hover { background: #cbcbcb; }
 #jump.on { display: block; }
 #page { position: relative; }
-#term, #foot { --ttu-font-size: 14px; margin: 0; padding: 0 2ch; overflow: visible; background: transparent; position: relative; z-index: 0; }
+#term, #foot { --ttu-font-size: 13px; margin: 0; padding: 0 10px; /* 同终端：⏺ 顶着左边、正文排到右边，只留窗口的一点内边距 */ overflow: visible; background: transparent; position: relative; z-index: 0; }
 #term a, #foot a { color: inherit; text-decoration: none; }
 #term a:hover, #foot a:hover { background: rgba(127, 127, 127, 0.22); }
 #foot { flex: none; cursor: text; padding: 0 0 8px !important; } /* 输入栏的横线顶到窗口两边 */
@@ -110,7 +110,7 @@ html.light .bar { background: #ececec; border-bottom-color: #d4d4d4; color: #666
 #term .fig img { --r: 16px; display: block; cursor: zoom-in; background: #1e1e1e; }
 #win.tl #term .fig img { background: #eee; }
 /* 用户的话：灰底画在最底层（z-index -2），选区（-1）在它之上、文字之下——选中时不会被灰底盖住 */
-#term .ask { position: relative; margin: 0 -2ch; padding: 0 2ch; }
+#term .ask { position: relative; margin: 0 -10px; padding: 0 10px; }
 #term .ask::before { content: ""; position: absolute; inset: 0; z-index: -2; background: #373737; }
 #win.tl #term .ask::before { background: #ececec; }
 /* 选区自己画（同 iTerm：浅蓝底、黑字）：#sel 在 #term 里，与文字、灰底同一层叠上下文；制表符的透明字形选中后仍透明 */
@@ -146,8 +146,8 @@ html:not(.light) #settings > .body { background: #1e1e20; }
   #menubar, #dock, .bar i, #settings { display: none; }
   .win { inset: 0; width: auto !important; height: auto !important; left: 0 !important; top: 0 !important; border-radius: 0; box-shadow: none; min-width: 0; }
   .win > .body { -webkit-mask: none; mask: none; }
-  #term, #foot { --ttu-font-size: 12px; padding: 0 1ch; }
-  #term .ask { margin: 0 -1ch; padding: 0 1ch; }
+  #term, #foot { --ttu-font-size: 12px; padding: 0 6px; }
+  #term .ask { margin: 0 -6px; padding: 0 6px; }
 }
 /* 菜单栏右侧：输入法、Wi‑Fi、电池、控制中心（SVG，颜色跟文字走）与时钟（等宽数字，秒不跳位） */
 #menubar .tray { display: flex; align-items: center; gap: 16px; }
@@ -159,29 +159,25 @@ html.light #menubar .ime { background: #1d1d1f; color: #fff; }
 html.light #menubar .bolt { fill: #fff; }
 #clock { font-variant-numeric: tabular-nums; }
 
-/* ---- 液态玻璃（macOS 26 Tahoe）：不是毛玻璃——模糊很轻、背景几乎透过来，饱和与亮度提一点，边缘一圈高光、顶上镜面反光 ---- */
-/* 菜单栏：Tahoe 里整条透明，只靠文字阴影托住 */
-#menubar { background: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
-html.light #menubar { text-shadow: 0 0 6px rgba(255, 255, 255, 0.6); }
-/* Dock：玻璃画在 ::before 上（它带超椭圆遮罩），Dock 本身不遮罩，外阴影才留得住 */
-#dock { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.22)); }
+/* ---- 液态玻璃（macOS 26 Tahoe）：玻璃是一层，画在 ::before 上，字和图标在它上面、不受任何影响。
+   玻璃本身：很轻的模糊、饱和与亮度略提，背景几乎透过来；边缘一圈亮线、上沿镜面高光；Chromium 再加透镜式的边缘折射（#lg-bar / #lg-dock） ---- */
+#menubar { background: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; text-shadow: none !important; isolation: isolate; }
+#menubar::before { content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05));
+  -webkit-backdrop-filter: blur(1.5px) saturate(1.8) brightness(1.06); backdrop-filter: blur(1.5px) saturate(1.8) brightness(1.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(255, 255, 255, 0.4), 0 1px 10px rgba(0, 0, 0, 0.08); }
+html.light #menubar::before { background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.12)); }
+html.refract #menubar::before { backdrop-filter: url(#lg-bar) blur(1px) saturate(1.8) brightness(1.06); }
+#dock { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; isolation: isolate; }
 #dock::before { content: ""; position: absolute; inset: 0; z-index: -1; --r: 38px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06) 45%, rgba(255, 255, 255, 0.1));
-  -webkit-backdrop-filter: blur(3px) saturate(1.9) brightness(1.08); backdrop-filter: blur(3px) saturate(1.9) brightness(1.08);
-  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.75), inset 0 -1px 0 rgba(255, 255, 255, 0.3), inset 1px 0 0 rgba(255, 255, 255, 0.35),
-    inset -1px 0 0 rgba(255, 255, 255, 0.35), inset 0 0 18px rgba(255, 255, 255, 0.18);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.09));
+  -webkit-backdrop-filter: blur(2px) saturate(1.9) brightness(1.08); backdrop-filter: blur(2px) saturate(1.9) brightness(1.08);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.75), inset 0 -1px 0 rgba(255, 255, 255, 0.35), inset 1px 0 0 rgba(255, 255, 255, 0.4),
+    inset -1px 0 0 rgba(255, 255, 255, 0.4), inset 0 0 16px rgba(255, 255, 255, 0.16);
   -webkit-mask: var(--sq-tl) top left / var(--r) var(--r) no-repeat, var(--sq-tr) top right / var(--r) var(--r) no-repeat,
     var(--sq-br) bottom right / var(--r) var(--r) no-repeat, var(--sq-bl) bottom left / var(--r) var(--r) no-repeat,
     linear-gradient(#000, #000) center / calc(100% - 2 * var(--r) + 1px) 100% no-repeat, linear-gradient(#000, #000) center / 100% calc(100% - 2 * var(--r) + 1px) no-repeat;
   mask: var(--sq-tl) top left / var(--r) var(--r) no-repeat, var(--sq-tr) top right / var(--r) var(--r) no-repeat,
     var(--sq-br) bottom right / var(--r) var(--r) no-repeat, var(--sq-bl) bottom left / var(--r) var(--r) no-repeat,
     linear-gradient(#000, #000) center / calc(100% - 2 * var(--r) + 1px) 100% no-repeat, linear-gradient(#000, #000) center / 100% calc(100% - 2 * var(--r) + 1px) no-repeat; }
-/* 顶上的镜面反光：一道斜着的亮带 */
-#dock::after { content: ""; position: absolute; left: 10%; right: 40%; top: 2px; height: 40%; z-index: -1; pointer-events: none; border-radius: 30px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0)); filter: blur(2px); opacity: 0.8; }
-html.refract #dock::before { backdrop-filter: url(#lg) blur(2px) saturate(1.9) brightness(1.08); }
-#dock { isolation: isolate; }
-/* 输入栏的预览灰字：指针移到输入栏上时亮起来（app.js 给预览用了专属的灰） */
-#foot [style*="rgb(121,121,122)"], #foot [style*="rgb(131,131,130)"] { transition: color 0.15s; }
-#foot:hover [style*="rgb(121,121,122)"] { color: #d6d6d6 !important; }
-#foot:hover [style*="rgb(131,131,130)"] { color: #2a2a2a !important; }
+html.refract #dock::before { backdrop-filter: url(#lg-dock) blur(1.5px) saturate(1.9) brightness(1.08); }
