@@ -14,7 +14,7 @@
   var ESC = "\x1b", RESET = ESC + "[0m", BOLD = ESC + "[1m";
   var rgb = function (c) { return ESC + "[38;2;" + c + "m"; };
   var ORANGE = rgb("215;119;87"), GREEN = rgb("78;186;101");
-  var chPx = 8, rowH = 17, cols = 0, theme = "", DIM = "", cache = {};
+  var chPx = 8, rowH = 17, cols = 0, termW = 0, padL = 0, theme = "", DIM = "", cache = {};
   var asked = 0, typed = 0, stream = null, spin = 0, spinTimer = 0, typeTimer = 0, statusEl = null;
   var big = {}; // 放大了的图（键：问号-段号）；默认小图（同备忘录），点一下放大到与正文左右对齐，再点缩回
   var settings = { tps: +(localStorage.getItem("tsu-tps") || 80) }; // 模拟的生成速度（token / 秒）：中文约 1.3 字一个 token
@@ -38,7 +38,11 @@
     term.appendChild(probe);
     chPx = probe.getBoundingClientRect().width / 100;
     probe.remove();
+    // 格宽直接写成实测值：注册过的 --ttu-cell（1ch）在浏览器缩放后，Safari 不一定重算，格子会按旧宽度挤在一起
+    [term, foot, jump].forEach(function (el) { el.style.setProperty("--ttu-cell", chPx + "px"); });
     var style = getComputedStyle(term);
+    termW = term.clientWidth;
+    padL = parseFloat(style.paddingLeft);
     rowH = parseFloat(style.lineHeight);
     topgap.style.height = rowH + "px";
     topgap.style.marginBottom = -rowH + "px";
@@ -123,10 +127,10 @@
       if (p.md) return r.text(answer(md));
       // 图片：agent 自己发的图——一次 Present 工具调用，图挂在 ⎿ 下面；块高取整到行，整屏仍是一张行格
       r.text([GREEN + "⏺" + RESET + " " + BOLD + "Present" + RESET + "(" + p.file + ")", "  ⎿  Presented " + BOLD + "1" + RESET + " image"]);
-      // 小图：挂在 ⎿ 后，约 40 列宽；大图：与正文左右对齐（左边齐 ⏺ 后的正文列，右边齐整屏右缘）
-      var id = t + "-" + i, left = big[id] ? 2 : 5, w = big[id] ? (cols - 2) * chPx : Math.min((cols - 5) * chPx, Math.max(240, 40 * chPx)), h = w * p.h / p.w;
-      r.block('<span class="fig" data-fig="' + id + '" style="padding-left:' + left * chPx + "px;padding-top:" + rowH / 3 + "px;height:" + Math.ceil(h / rowH + 0.5) * rowH + 'px">' +
-        '<img src="' + escHtml(p.img) + '" alt="' + escHtml(p.alt) + '" title="' + escHtml(p.alt) + (big[id] ? "（点一下缩小）" : "（点一下放大）") +
+      // 左边都挂在 ⎿ 后（第 5 列）；小图约 40 列宽，大图右边缘与左边缘对称（离窗口右边与左边一样远）
+      var id = t + "-" + i, inset = padL + 5 * chPx, w = big[id] ? termW - 2 * inset : Math.min(termW - 2 * inset, Math.max(240, 40 * chPx)), h = w * p.h / p.w;
+      r.block('<span class="fig" data-fig="' + id + '" style="padding-left:' + 5 * chPx + "px;padding-top:" + rowH / 3 + "px;height:" + Math.ceil(h / rowH + 0.5) * rowH + 'px">' +
+        '<img class="sq" src="' + escHtml(p.img) + '" alt="' + escHtml(p.alt) + '" title="' + escHtml(p.alt) + (big[id] ? "（点一下缩小）" : "（点一下放大）") +
         '" width="' + Math.round(w) + '" height="' + Math.round(h) + '" decoding="sync"></span>');
     });
     // 一轮结束：✻ Worked for 34s · done 10:54 PM（取代答题时的状态行，位置相同）
@@ -179,8 +183,8 @@
     foot.classList.toggle("ttu-light", light);
     jump.classList.toggle("ttu-light", light);
     toggle.textContent = light ? "☾" : "☀";
-    var next = measure();
-    if (next !== cols) cache = {};
+    var ch0 = chPx, w0 = termW, next = measure();
+    if (next !== cols || chPx !== ch0 || termW !== w0) cache = {};
     cols = next;
     out.innerHTML = '<span class="blk" id="status"></span>';
     statusEl = $("status");
@@ -362,10 +366,16 @@
     if (follow) toBottom();
     else scrollByRows(Math.round(at * maxY() / rowH) - Math.round(screen.scrollTop / rowH));
   }
-  new ResizeObserver(function () {
+  // 列数、格宽（浏览器缩放）、屏宽任一变了就重排；页面缩放时窗口的 CSS 尺寸可能不变，所以也听浏览器窗口的 resize
+  function check() {
     cancelAnimationFrame(resizeFrame);
-    resizeFrame = requestAnimationFrame(function () { if (measure() !== cols) reflow(); });
-  }).observe(screen);
+    resizeFrame = requestAnimationFrame(function () {
+      var ch0 = chPx, w0 = termW;
+      if (measure() !== cols || chPx !== ch0 || termW !== w0) reflow();
+    });
+  }
+  new ResizeObserver(check).observe(screen);
+  window.addEventListener("resize", check);
 
   // 点图：小图 ↔ 大图。重排后让这张图的顶边留在原来的屏幕位置
   term.addEventListener("click", function (e) {
