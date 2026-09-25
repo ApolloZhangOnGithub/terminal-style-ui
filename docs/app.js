@@ -110,7 +110,8 @@
   function answer(md) {
     // ⏺ 用正文灰（dark 即默认前景 #c7c7c7；light 的默认前景近黑，另给 #555）
     var dot = theme === "light" ? rgb("85;85;85") + "⏺" + RESET : "⏺";
-    return trim(TTU.markdownLines(md, { width: cols - 2, theme: theme })).map(function (l, i) { return (i ? "  " : dot + " ") + l; });
+    // 折行宽度左右对称：左边让出「⏺ 」两格，右边也空两格
+    return trim(TTU.markdownLines(md, { width: cols - 4, theme: theme })).map(function (l, i) { return (i ? "  " : dot + " ") + l; });
   }
   // 一问一答的行。upto = { part, lines }：只含前 part 段 + 第 part 段的前 lines 行源码（流式输出中）；不传 = 全文
   function turnRows(t, upto) {
@@ -148,7 +149,7 @@
       var secs = Math.floor((Date.now() - stream.t0) / 1000), tok = stream.tokens < 1000 ? stream.tokens : (stream.tokens / 1000).toFixed(1) + "k";
       r.text(["", ORANGE + SPIN[spin % SPIN.length] + " " + stream.verb + "…" + RESET + DIM + " (" + secs + "s · ↓ " + tok + " tokens" +
         (stream.thinking && cols >= 70 ? " · thinking with medium effort" : "") + ")" + RESET]);
-      wrap(TIPS[stream.t % TIPS.length], cols - 5, true).forEach(function (l, i) { r.text([(i ? "     " : "  ⎿  ") + DIM + l + RESET]); });
+      wrap(TIPS[stream.t % TIPS.length], cols - 7, true).forEach(function (l, i) { r.text([(i ? "     " : "  ⎿  ") + DIM + l + RESET]); });
     }
     r.text([""]);
     statusEl.innerHTML = join(r.flush().rows);
