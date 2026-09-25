@@ -1,0 +1,29 @@
+# 发布 Release 时，把附带的 npm 包（本机构建好的 .tgz）发到 GitHub Packages。
+# 构建需要定制版 pi-tui，CI 里没有——这里不重新构建，只上传 Release 里现成的包
+name: Publish package
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com
+          scope: "@apollozhangongithub"
+      - name: Download package from release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "${{ github.event.release.tag_name }}" --repo "${{ github.repository }}" --pattern "*.tgz"
+      - name: Publish to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+        run: npm publish ./*.tgz
