@@ -26,24 +26,24 @@ html.light .bar { background: #ececec; border-bottom-color: #d4d4d4; color: #666
 .bar i:nth-child(3) { background: #28c840; }
 .bar span { position: absolute; left: 0; right: 0; text-align: center; pointer-events: none; }
 #toggle { margin-left: auto; position: relative; border: 0; background: none; color: inherit; font-size: 14px; cursor: pointer; padding: 2px 4px; }
-/* 屏幕：窗口里自己滚动，不显示滚动条（同终端） */
+/* 全屏模式（同 Claude Code）：对话在屏幕里滚动，输入框和状态行固定在窗口底部；屏幕：窗口里自己滚动，不显示滚动条（同终端） */
 #screen { flex: 1; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; }
 #screen::-webkit-scrollbar { display: none; }
 #page { position: relative; }
-#term { --ttu-font-size: 14px; padding: 0 2ch; overflow: visible; background: transparent; position: relative; z-index: 0; }
-#term a { color: inherit; text-decoration: none; }
-#term a:hover { background: rgba(127, 127, 127, 0.22); }
+#term, #foot { --ttu-font-size: 14px; padding: 0 2ch; overflow: visible; background: transparent; position: relative; z-index: 0; }
+#term a, #foot a { color: inherit; text-decoration: none; }
+#term a:hover, #foot a:hover { background: rgba(127, 127, 127, 0.22); }
 /* 块：图片、用户的话（灰底铺满）——高度都是整行，整屏仍是一张行格 */
-#term .fig, #term .ask, #term .box { display: block; }
+#term .blk, #term .fig, #term .ask { display: block; }
 #term .fig { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
 #term .fig img { display: block; border-radius: 6px; }
 #term .ask { background: #373737; margin: 0 -2ch; padding: 0 2ch; }
 html.light #term .ask { background: #ececec; }
-#term #input { cursor: text; }
-#term .hint { color: #777; }
-#term .hint a { color: #999; text-decoration: underline; text-decoration-color: #555; cursor: pointer; }
-html.light #term .hint { color: #888; }
-html.light #term .hint a { color: #666; }
+#foot { flex: none; cursor: text; padding-bottom: 6px; }
+#foot .hint { color: #777; }
+#foot .hint a { color: #999; text-decoration: underline; text-decoration-color: #555; cursor: pointer; }
+html.light #foot .hint { color: #888; }
+html.light #foot .hint a { color: #666; }
 /* 选区自己画（同 iTerm：浅蓝底、黑字），垫在文字之下；制表符的透明字形选中后仍透明 */
 #term::selection, #term ::selection { background: transparent; color: #000; }
 #term .ttu-box::selection { color: transparent; -webkit-text-fill-color: transparent; }
@@ -53,6 +53,6 @@ html.light #term .hint a { color: #666; }
 /* 手机：窗口铺满，没有桌面 */
 @media (max-width: 600px) {
   .win { width: 100vw; height: 100dvh; border-radius: 0; box-shadow: none; }
-  #term { --ttu-font-size: 12px; padding: 0 1ch; }
+  #term, #foot { --ttu-font-size: 12px; padding: 0 1ch; }
   #term .ask { margin: 0 -1ch; padding: 0 1ch; }
 }

@@ -1,6 +1,6 @@
 // build.mjs —— 把 docs/blog.md 做成 docs/index.html（GitHub Pages）：node docs/build.mjs（先在 terminal-style-ui-web 里 npm run build）
 // 页面是一段可以“接着问”的 Claude Code 会话：blog.md 里每个 <!-- ask: … --> 是读者的一个问题，其后到下一个问题为止是 ⏺ 的回答；
-// 单独成行的图片是一次 ⏺ Read(…) 工具调用。排版与交互在浏览器里（app.js + 打包版渲染核心 ttu-core.js），这里只切段、拷文件
+// 单独成行的图片是一次 ⏺ Present(…) 工具调用（agent 自己发的图）。排版与交互在浏览器里（app.js + 打包版渲染核心 ttu-core.js），这里只切段、拷文件
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,7 +62,8 @@ const page = `<!DOCTYPE html>
 <body>
 <div class="win">
   <div class="bar"><i></i><i></i><i></i><span>claude — terminal-style-ui</span><button id="toggle" title="切换深色 / 浅色">☾</button></div>
-  <div id="screen"><div id="page"><div id="sel"></div><pre id="term" class="terminal-style-ui"><span id="out"></span><span id="input"></span></pre></div></div>
+  <div id="screen"><div id="page"><div id="sel"></div><pre id="term" class="terminal-style-ui"><span id="out"></span></pre></div></div>
+  <pre id="foot" class="terminal-style-ui"><span id="input"></span></pre>
 </div>
 <noscript><p class="noscript">这个页面在浏览器里现场排版，需要 JavaScript。原文见 <a href="https://github.com/ApolloZhangOnGithub/terminal-style-ui/blob/main/docs/blog.md">docs/blog.md</a>。</p></noscript>
 <script id="turns" type="application/json">${JSON.stringify(turns).replace(/</g, "\\u003c")}</script>

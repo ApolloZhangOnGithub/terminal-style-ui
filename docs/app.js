@@ -1,18 +1,19 @@
 // app.js —— 博客页：一段可以接着问的 Claude Code 会话（数据见 index.html 里的 #turns，由 build.mjs 从 blog.md 切出）
 // 排版：打包版渲染核心（TTU）按窗口实际能放下的列数现场排，窗口 / 浏览器缩放都会重排。
-// 交互：输入框里是读者的下一个问题（灰字），打字把它“打”出来，回车发送 → ✻ Thinking… → 回答一行行流出来，窗口自动跟到底；
+// 交互（同 Claude Code 全屏模式：对话区滚动，输入框固定在底部）：输入框里是读者的下一个问题（灰字），打字把它“打”出来，
+// 回车发送 → ✻ Thinking… → 回答按源码一行行流出来（同 teyvat 的 line-by-line），窗口自动跟到底；
 // 回答中回车 = 直接出完，Esc = 全文。手机上轻点输入框提问。滚轮 / 触控板 / 键盘按整行滚动（图片上照常顺滑滚），选区自己画（同 VSCode 预览）
 (function () {
   "use strict";
   var TURNS = JSON.parse(document.getElementById("turns").textContent);
   var $ = function (id) { return document.getElementById(id); };
-  var root = document.documentElement, screen = $("screen"), term = $("term"), out = $("out"), input = $("input"), selLayer = $("sel"), toggle = $("toggle");
+  var root = document.documentElement, screen = $("screen"), term = $("term"), foot = $("foot"), out = $("out"), input = $("input"), selLayer = $("sel"), toggle = $("toggle");
   var touch = matchMedia("(pointer: coarse)").matches;
   var ESC = "\x1b", RESET = ESC + "[0m", BOLD = ESC + "[1m";
   var rgb = function (c) { return ESC + "[38;2;" + c + "m"; };
   var ORANGE = rgb("215;119;87"), GREEN = rgb("78;186;101");
   var chPx = 8, rowH = 17, cols = 0, theme = "", DIM = "", cache = {};
-  var asked = 0, typed = 0, stream = null, outLast = "", spin = 0, spinTimer = 0, typeTimer = 0;
+  var asked = 0, typed = 0, stream = null, spin = 0, spinTimer = 0, typeTimer = 0;
 
   // ---- 排版 ----
   function measure() {
@@ -85,32 +86,35 @@
   function answer(md) {
     return trim(TTU.markdownLines(md, { width: cols - 2, theme: theme })).map(function (l, i) { return (i ? "  " : "⏺ ") + l; });
   }
-  function turnRows(t) {
+  // 一问一答的行。upto = { part, lines }：只含前 part 段 + 第 part 段的前 lines 行源码（流式输出中）；不传 = 全文
+  function turnRows(t, upto) {
     var key = t + "|" + cols + "|" + theme;
-    if (cache[key]) return cache[key];
+    if (!upto && cache[key]) return cache[key];
     var turn = TURNS[t], r = new Rows().text([""]);
     var ask = wrap(turn.ask, cols - 2).map(function (l, i) { return pad((i ? "  " : "> ") + l, cols); });
     r.block('<span class="ask">' + toHtml(ask) + "</span>");
-    var promptEnd = r.rows.length;
-    turn.parts.forEach(function (p) {
+    turn.parts.forEach(function (p, i) {
+      if (upto && i > upto.part) return;
+      var md = p.md && upto && i === upto.part ? p.md.split("\n").slice(0, upto.lines).join("\n") : p.md;
+      if (upto && i === upto.part && !(md && md.trim())) return;
       r.text([""]);
-      if (p.md) return r.text(answer(p.md));
-      // 图片：一次 Read 工具调用，图挂在 ⎿ 下面；块高取整到行，整屏仍是一张行格
-      r.text([GREEN + "⏺" + RESET + " " + BOLD + "Read" + RESET + "(" + p.file + ")", "  ⎿  " + DIM + p.alt + RESET]);
+      if (p.md) return r.text(answer(md));
+      // 图片：agent 自己发的图——一次 Present 工具调用，图挂在 ⎿ 下面；块高取整到行，整屏仍是一张行格
+      r.text([GREEN + "⏺" + RESET + " " + BOLD + "Present" + RESET + "(" + p.file + ")", "  ⎿  " + DIM + p.alt + RESET]);
       var w = Math.min((cols - 6) * chPx, p.w / 2, 1100), h = w * p.h / p.w;
       r.block('<span class="fig" style="padding-left:' + 5 * chPx + "px;padding-top:" + rowH / 3 + "px;height:" + Math.ceil(h / rowH + 0.5) * rowH + 'px">' +
         '<img src="' + escHtml(p.img) + '" alt="' + escHtml(p.alt) + '" width="' + Math.round(w) + '" height="' + Math.round(h) + '" decoding="async"></span>');
     });
     var rows = r.flush().rows;
-    rows.promptEnd = promptEnd;
-    return (cache[key] = rows);
+    return upto ? rows : (cache[key] = rows);
   }
+  var upto = function () { return stream && { part: stream.part, lines: stream.lines }; };
 
   // ---- 输入框（每次状态变化重画）----
   var SPIN = ["·", "✢", "✳", "✶", "✻", "✽", "✻", "✶", "✳", "✢"];
   function renderInput() {
-    var r = new Rows().text([""]);
-    if (stream) r.text([ORANGE + SPIN[spin % SPIN.length] + " " + (stream.thinking ? "Thinking…" : "回答中…") + RESET + DIM + (touch ? "（轻点 直接出完）" : "（回车 直接出完）") + RESET, ""]);
+    // 底部固定区：状态行（回答中是转圈的 ✻）、输入框、提示
+    var r = new Rows().text([stream ? ORANGE + SPIN[spin % SPIN.length] + " " + (stream.thinking ? "Thinking…" : "回答中…") + RESET + DIM + (touch ? "（轻点 直接出完）" : "（回车 直接出完）") + RESET : ""]);
     var q = asked < TURNS.length ? TURNS[asked].ask : "";
     var text = stream ? "" : q ? q.slice(0, typed) + DIM + q.slice(typed) + RESET : DIM + "（问完了，谢谢你读到这里）" + RESET;
     var lines = wrap(q && !stream ? q : " ", cols - 6);
@@ -126,36 +130,33 @@
       ? '本页由 <a href="https://github.com/ApolloZhangOnGithub/terminal-style-ui">terminal-style-ui</a> 渲染 · <a data-act="top">回到开头</a>'
       : (touch ? "轻点输入框 提问" : "回车 提问 · ↑↓ 滚动") + (asked < TURNS.length ? ' · <a data-act="all">Esc 全文</a>' : "");
     r.rows.push({ k: "t", h: '<span class="hint">  ' + hint + "</span>" });
-    input.innerHTML = join(r.rows, outLast);
+    input.innerHTML = join(r.rows, "");
   }
 
-  function append(rows) {
-    if (!rows.length) return;
-    out.insertAdjacentHTML("beforeend", join(rows, outLast));
-    outLast = rows[rows.length - 1].k;
+  // 对话区：开场框、每轮问答各是一个块（块自带换行，块内按行拼）；流式输出只重画正在回答的那一块
+  function turnBlock(rows) {
+    var el = document.createElement("span");
+    el.className = "blk";
+    el.innerHTML = join(rows, "");
+    out.appendChild(el);
+    return el;
   }
   function renderAll() {
     var light = root.classList.contains("light");
     theme = light ? "light" : "dark";
     DIM = rgb(light ? "130;130;130" : "120;120;120");
     term.classList.toggle("ttu-light", light);
+    foot.classList.toggle("ttu-light", light);
     toggle.textContent = light ? "☾" : "☀";
     var next = measure();
     if (next !== cols) cache = {};
     cols = next;
-    var rows = banner();
-    for (var t = 0; t < asked; t++) {
-      var tr = turnRows(t);
-      if (stream && stream.t === t) {
-        stream.i = Math.min(tr.length, Math.max(tr.promptEnd, Math.round(stream.frac() * tr.length)));
-        stream.rows = tr;
-        tr = tr.slice(0, stream.i);
-      }
-      rows = rows.concat(tr);
-    }
     out.innerHTML = "";
-    outLast = "";
-    append(rows);
+    turnBlock(banner());
+    for (var t = 0; t < asked; t++) {
+      var el = turnBlock(turnRows(t, stream && stream.t === t ? upto() : null));
+      if (stream && stream.t === t) stream.el = el;
+    }
     renderInput();
     paintSelection();
   }
@@ -166,30 +167,48 @@
   function stopTimers() {
     clearTimeout(typeTimer);
     typeTimer = 0;
-    if (stream) { clearTimeout(stream.timer); clearInterval(stream.timer); }
+    if (stream) clearTimeout(stream.timer);
     clearInterval(spinTimer);
+  }
+  // 流式：同 teyvat 的 line-by-line——源码一行写完才显示这一行（段落整段出、表格一行行长出来），
+  // 节奏按这一行的长度估算生成时间（约 90 字 / 秒）；图片是一次工具调用，稍停一下整张出
+  function nextStep() {
+    var turn = TURNS[stream.t], p = turn.parts[stream.part];
+    if (!p) return null;
+    if (p.img) return { part: stream.part + 1, lines: 0, delay: 500 };
+    var lines = p.md.split("\n"), k = stream.lines + 1;
+    while (k < lines.length && !lines[k - 1].trim()) k++;
+    var delay = Math.min(1100, 40 + (lines[k - 1] || "").length * 1000 / 90);
+    return k >= lines.length ? { part: stream.part + 1, lines: 0, delay: delay } : { part: stream.part, lines: k, delay: delay };
+  }
+  function redrawStream() {
+    var follow = nearBottom();
+    stream.el.innerHTML = join(turnRows(stream.t, upto()), "");
+    if (follow) toBottom();
+  }
+  function schedule() {
+    var step = nextStep();
+    if (!step) return done(nearBottom());
+    stream.timer = setTimeout(function () {
+      stream.thinking = false;
+      stream.part = step.part;
+      stream.lines = step.lines;
+      redrawStream();
+      schedule();
+    }, step.delay);
   }
   function ask() {
     if (stream) return finish();
     if (asked >= TURNS.length) return;
     stopTimers();
-    var t = asked++, rows = turnRows(t);
+    var t = asked++;
     typed = 0;
-    append(rows.slice(0, rows.promptEnd));
-    stream = { t: t, rows: rows, i: rows.promptEnd, thinking: true, frac: function () { return this.i / this.rows.length; } };
+    stream = { t: t, part: 0, lines: 0, thinking: true };
+    stream.el = turnBlock(turnRows(t, upto()));
     spinTimer = setInterval(function () { spin++; renderInput(); }, 120);
     renderInput();
     toBottom();
-    stream.timer = setTimeout(function () {
-      stream.thinking = false;
-      stream.timer = setInterval(function () {
-        var follow = nearBottom();
-        append(stream.rows.slice(stream.i, stream.i + 1));
-        stream.i++;
-        if (follow) toBottom();
-        if (stream.i >= stream.rows.length) done(follow);
-      }, 22);
-    }, 450 + Math.random() * 350);
+    stream.timer = setTimeout(schedule, 450 + Math.random() * 350);
   }
   function done(follow) {
     stopTimers();
@@ -199,14 +218,14 @@
   }
   function finish() {
     if (!stream) return;
-    append(stream.rows.slice(stream.i));
+    stream.el.innerHTML = join(turnRows(stream.t), "");
     done(true);
   }
   function showAll() {
     var y = screen.scrollTop;
     finish();
     stopTimers();
-    while (asked < TURNS.length) append(turnRows(asked++));
+    while (asked < TURNS.length) turnBlock(turnRows(asked++));
     renderInput();
     screen.scrollTop = y; // 从读到的地方接着往下读
   }
@@ -280,7 +299,7 @@
       if (!nearBottom()) toBottom();
     }
   });
-  input.addEventListener("click", function (e) {
+  foot.addEventListener("click", function (e) {
     var act = e.target.closest && e.target.closest("a[data-act]");
     if (act) {
       e.preventDefault();
