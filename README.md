@@ -60,8 +60,8 @@
 
 | 用处 | 安装 |
 |---|---|
-| VSCode 插件 | [Releases](https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases) 下载 `.vsix` → `code --install-extension terminal-style-ui-vscode-0.1.1.vsix` |
-| Mac 快速查看 | Releases 下载 `Terminal-Style-UI-0.1.1.zip`（Apple Silicon / Intel 通用），解压后把 App 放进「应用程序」，打开一次 |
+| VSCode 插件 | [Releases](https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases) 下载 `.vsix` → `code --install-extension terminal-style-ui-vscode-0.1.2.vsix` |
+| Mac 快速查看 | Releases 下载 `Terminal-Style-UI-0.1.2.zip`（Apple Silicon / Intel 通用），解压后把 App 放进「应用程序」，打开一次 |
 | tmd / 渲染库 | `npm install -g @apollozhangongithub/terminal-style-ui --registry=https://npm.pkg.github.com`（GitHub Packages，需先 `npm login --registry=https://npm.pkg.github.com`） |
 
 所有上游依赖（pi-tui、主题、cli-highlight、highlight.js、chalk）都已打包进去，不需要另装运行时。

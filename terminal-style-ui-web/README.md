@@ -2,7 +2,7 @@
 
 [![Release](https://img.shields.io/github/v/release/ApolloZhangOnGithub/terminal-style-ui?label=release&color=5fd068)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/blob/main/LICENSE) [![GitHub Packages](https://img.shields.io/badge/npm-@apollozhangongithub%2Fterminal--style--ui-cb3837?logo=npm)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/pkgs/npm/terminal-style-ui) ![Node](https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white) [![Publish package](https://github.com/ApolloZhangOnGithub/terminal-style-ui/actions/workflows/publish-package.yml/badge.svg)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/actions/workflows/publish-package.yml)
 
-属于 [terminal-style-ui](https://github.com/ApolloZhangOnGithub/terminal-style-ui)（版本 0.1.1）。
+属于 [terminal-style-ui](https://github.com/ApolloZhangOnGithub/terminal-style-ui)（版本 0.1.2）。
 
 **把终端 TUI 的渲染管线搬到网页上**——与 iTerm/TUI 视觉一致的 Markdown 渲染库。
 

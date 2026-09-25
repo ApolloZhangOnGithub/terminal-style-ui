@@ -2,7 +2,7 @@
 
 [![Release](https://img.shields.io/github/v/release/ApolloZhangOnGithub/terminal-style-ui?label=release&color=5fd068)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/blob/main/LICENSE) ![macOS](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white) [![Downloads](https://img.shields.io/github/downloads/ApolloZhangOnGithub/terminal-style-ui/total?color=orange)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases)
 
-属于 [terminal-style-ui](https://github.com/ApolloZhangOnGithub/terminal-style-ui)（版本 0.1.1）。
+属于 [terminal-style-ui](https://github.com/ApolloZhangOnGithub/terminal-style-ui)（版本 0.1.2）。
 
 访达里选中文件按**空格**，用终端 TUI 同款渲染显示：Markdown 照常渲染（表格、代码块、引用……），代码 / 文本带高亮和灰色行号（同 Claude Code，贴左、不画竖线）。字号同 Apple 自带的文本预览（11pt）；按窗口宽度排版，拉宽自动重排；滚轮 / 触控板整行滚动；大文件流式显示（第一屏马上出，其余陆续补上）。类型看内容判断，后缀只是参考（`.WIKI`、`.SPEC`、没后缀的 Makefile 都行）。跟随系统深色 / 浅色。
 
@@ -22,7 +22,7 @@
 
 ## 安装
 
-从 [Releases](https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases) 下载 `Terminal-Style-UI-0.1.1.zip`，解压后把 `Terminal Style UI.app` 放进「应用程序」，打开一次（登记预览扩展）。
+从 [Releases](https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases) 下载 `Terminal-Style-UI-0.1.2.zip`，解压后把 `Terminal Style UI.app` 放进「应用程序」，打开一次（登记预览扩展）。
 
 - 这一版用开发者证书签名、未经 Apple 公证：第一次打开若提示「无法验证开发者」，在访达里右键 App →「打开」，或到 系统设置 → 隐私与安全性 里点「仍要打开」。
 

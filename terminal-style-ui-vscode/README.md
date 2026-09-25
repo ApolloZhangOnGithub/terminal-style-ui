@@ -2,7 +2,7 @@
 
 [![Release](https://img.shields.io/github/v/release/ApolloZhangOnGithub/terminal-style-ui?label=release&color=5fd068)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/blob/main/LICENSE) ![VSCode](https://img.shields.io/badge/VSCode-%E2%89%A51.90-007ACC?logo=visualstudiocode&logoColor=white) [![Downloads](https://img.shields.io/github/downloads/ApolloZhangOnGithub/terminal-style-ui/total?color=orange)](https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases)
 
-属于 [terminal-style-ui](https://github.com/ApolloZhangOnGithub/terminal-style-ui)（版本 0.1.1）。
+属于 [terminal-style-ui](https://github.com/ApolloZhangOnGithub/terminal-style-ui)（版本 0.1.2）。
 
 **在 VSCode 里用终端 TUI 同款渲染管线预览 Markdown 和任意文件**——与 iTerm/TUI 视觉一致。是同级目录 `terminal-style-ui-web` 渲染库的 VSCode 外壳。
 
@@ -26,10 +26,10 @@ Markdown（左边源文件，右边预览；实时刷新、双向联动滚动）
 
 ## 安装
 
-从 [Releases](https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases) 下载 `terminal-style-ui-vscode-0.1.1.vsix`：
+从 [Releases](https://github.com/ApolloZhangOnGithub/terminal-style-ui/releases) 下载 `terminal-style-ui-vscode-0.1.2.vsix`：
 
 ```bash
-code --install-extension terminal-style-ui-vscode-0.1.1.vsix
+code --install-extension terminal-style-ui-vscode-0.1.2.vsix
 ```
 
 自己打包：`npm run package`（先把同级的渲染库连同打包好的依赖拷进 `lib/`，插件自带渲染库，装到哪台机器都能用）。
