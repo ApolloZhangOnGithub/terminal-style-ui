@@ -140,7 +140,7 @@
       // 左边都挂在 ⎿ 后（第 5 列）；小图约 40 列宽，大图右边缘与左边缘对称（离窗口右边与左边一样远）
       var id = t + "-" + i, inset = padL + 5 * chPx, w = big[id] ? termW - 2 * inset : Math.min(termW - 2 * inset, Math.max(240, 40 * chPx)), h = w * p.h / p.w;
       r.block('<span class="fig" data-fig="' + id + '" style="padding-left:' + 5 * chPx + "px;padding-top:" + rowH / 3 + "px;height:" + Math.ceil(h / rowH + 0.5) * rowH + 'px">' +
-        '<img class="sq" src="' + escHtml(p.img) + '" alt="' + escHtml(p.alt) + '" title="' + escHtml(p.alt) + (big[id] ? "（点一下缩小）" : "（点一下放大）") +
+        '<img class="sq" src="' + escHtml(big[id] ? p.big : p.img) + '" alt="' + escHtml(p.alt) + '" title="' + escHtml(p.alt) + (big[id] ? "（点一下缩小）" : "（点一下放大）") +
         '" width="' + Math.round(w) + '" height="' + Math.round(h) + '" decoding="sync"></span>');
     });
     // 一轮结束：✻ Worked for 34s · done 10:54 PM（取代答题时的状态行，位置相同）
@@ -229,15 +229,22 @@
   // ---- 提问与流式输出 ----
   var nearBottom = function () { return screen.scrollHeight - screen.clientHeight - screen.scrollTop < rowH * 3; };
   var toBottom = function () { screen.scrollTop = screen.scrollHeight; };
-  // 图片预先解码：Present 时直接出整张，不会先白一下
-  TURNS.forEach(function (turn) {
-    turn.parts.forEach(function (p) {
-      if (!p.img) return;
+  // 图片按需预加载：开场只取第一问的图，每问一个问题就预取下一问的；Present 前等小图解码好，不会先白一下。
+  // 大图（放大时用）在指针移到图上时预取，点下去等解码好再换
+  var load = function (src) {
+    load.cache = load.cache || {};
+    if (!load.cache[src]) {
       var img = new Image();
-      img.src = p.img;
-      p.ready = (img.decode ? img.decode() : Promise.resolve()).catch(function () {});
-    });
-  });
+      img.src = src;
+      load.cache[src] = (img.decode ? img.decode() : Promise.resolve()).catch(function () {});
+    }
+    return load.cache[src];
+  };
+  function preload(t) {
+    if (!TURNS[t]) return;
+    TURNS[t].parts.forEach(function (p) { if (p.img) p.ready = load(p.img); });
+  }
+  preload(0);
   function stopTimers() {
     clearTimeout(typeTimer);
     typeTimer = 0;
@@ -249,11 +256,14 @@
   function nextStep() {
     var p = TURNS[stream.t].parts[stream.part];
     if (!p) return null;
-    if (p.img) return { part: stream.part + 1, lines: 0, delay: 700, tokens: 60, wait: p.ready };
+    if (p.img) return { part: stream.part + 1, lines: 0, delay: 700, tokens: 60, wait: p.ready || load(p.img) };
     var lines = p.md.split("\n"), k = stream.lines + 1;
     while (k < lines.length && !lines[k - 1].trim()) k++;
     // 表格的分隔行（|---|---|）不单独出：跟下一行一起，免得先冒出一行空表格
     while (k < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[k - 1])) k++;
+    // 代码块的开头围栏（```）不单独出：跟第一行代码一起，免得先冒出一个只有行号的空代码块
+    var fences = lines.slice(0, k).filter(function (l) { return /^\s*```/.test(l); }).length;
+    if (fences % 2 === 1 && /^\s*```/.test(lines[k - 1]) && k < lines.length) k++;
     var tokens = Math.max(1, Math.ceil((lines[k - 1] || "").length / 1.3)), delay = Math.min(1600, 30 + tokens * 1000 / settings.tps);
     return k >= lines.length ? { part: stream.part + 1, lines: 0, delay: delay, tokens: tokens } : { part: stream.part, lines: k, delay: delay, tokens: tokens };
   }
@@ -284,6 +294,8 @@
     stopTimers();
     var t = asked++;
     typed = 0;
+    preload(t);
+    preload(t + 1); // 读者读这一问时，下一问的图先取着
     stream = { t: t, part: 0, lines: 0, thinking: true, t0: Date.now(), tokens: 0, verb: VERBS[Math.floor(Math.random() * VERBS.length)] };
     stream.el = turnBlock(turnRows(t, upto()));
     spinTimer = setInterval(function () { spin++; renderStatus(); }, 120);
@@ -443,16 +455,24 @@
   window.addEventListener("resize", check);
 
   // 点图：小图 ↔ 大图。重排后让这张图的顶边留在原来的屏幕位置
+  var figPart = function (id) { var k = id.split("-"); return TURNS[+k[0]].parts[+k[1]]; };
+  term.addEventListener("pointerover", function (e) {
+    var fig = e.target.closest && e.target.closest(".fig");
+    if (fig) load(figPart(fig.dataset.fig).big); // 指上去就先取大图
+  });
   term.addEventListener("click", function (e) {
     var fig = e.target.closest && e.target.closest(".fig");
     if (!fig || String(document.getSelection())) return;
-    var id = fig.dataset.fig, y = fig.getBoundingClientRect().top;
-    big[id] = !big[id];
-    if (!big[id]) delete big[id];
-    renderAll();
-    var now = term.querySelector('[data-fig="' + id + '"]');
-    if (now) screen.scrollTop += now.getBoundingClientRect().top - y;
-    onScroll();
+    var id = fig.dataset.fig, p = figPart(id);
+    (big[id] ? Promise.resolve() : load(p.big)).then(function () {
+      var y = fig.getBoundingClientRect().top;
+      big[id] = !big[id];
+      if (!big[id]) delete big[id];
+      renderAll();
+      var now = term.querySelector('[data-fig="' + id + '"]');
+      if (now) screen.scrollTop += now.getBoundingClientRect().top - y;
+      onScroll();
+    });
   });
   // 系统外观变了：桌面跟着变；终端跟随系统时一起重排
   var setTheme = function (light) { root.classList.toggle("light", light); renderAll(); document.dispatchEvent(new Event("tsu-theme")); };

@@ -4,6 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const web = path.join(here, "../terminal-style-ui-web");
@@ -13,6 +14,15 @@ fs.copyFileSync(path.join(web, "terminal.css"), path.join(here, "terminal.css"))
 const source = fs.readFileSync(path.join(here, "blog.md"), "utf8");
 const title = /^# (.+)$/m.exec(source)[1];
 const description = /^> (.+)$/m.exec(source)[1].replace(/[*`]/g, "").slice(0, 120);
+
+// 图片：原图是仓库里的 PNG（raw 链接又大又跨域）；构建时转成两份 WebP 放在 Pages 同源——小图默认显示，大图放大时用。原图没变就不重转
+function webp(src, width) {
+  const name = path.basename(src, ".png") + (width > 1000 ? "-l" : "-s") + ".webp", out = path.join(here, "img", name);
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  if (!fs.existsSync(out) || fs.statSync(out).mtimeMs < fs.statSync(src).mtimeMs)
+    execFileSync("cwebp", ["-quiet", "-q", "82", "-resize", String(Math.min(width, fs.readFileSync(src).readUInt32BE(16))), "0", src, "-o", out]);
+  return "img/" + name;
+}
 
 // 切段：[{ ask, parts: [{ md } | { img, alt, file, w, h }] }]
 const ASK_LINE = /^<!-- ask: (.+?) -->\s*$/;
@@ -34,8 +44,8 @@ for (const line of source.split("\n")) {
   } else if (image) {
     flush();
     const file = image[2].replace(/^.*\/main\//, ""); // raw 链接 → 仓库内路径（Read 的参数；尺寸读本地文件）
-    const png = fs.readFileSync(path.join(here, "..", file));
-    turns.at(-1).parts.push({ alt: image[1], img: image[2], file, w: png.readUInt32BE(16), h: png.readUInt32BE(20) });
+    const src = path.join(here, "..", file), png = fs.readFileSync(src);
+    turns.at(-1).parts.push({ alt: image[1], file, w: png.readUInt32BE(16), h: png.readUInt32BE(20), img: webp(src, 960), big: webp(src, 2400) });
   } else buffer.push(line);
 }
 flush();
