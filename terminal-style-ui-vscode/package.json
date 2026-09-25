@@ -1,0 +1,284 @@
+{
+  "name": "terminal-style-ui-vscode",
+  "displayName": "Terminal Style UI",
+  "description": "终端 TUI 风格的 Markdown / 任意文件预览：表格制表符严丝合缝、中英文对齐、Claude Code 同款代码行号，dark / light，导出 HTML / PDF",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ApolloZhangOnGithub/terminal-style-ui.git",
+    "directory": "terminal-style-ui-vscode"
+  },
+  "publisher": "apollozhang",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Visualization",
+    "Programming Languages",
+    "Other"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "languages": [
+      {
+        "id": "markdown",
+        "extensions": [
+          ".wiki"
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "terminalStyleUi.openPreview",
+        "title": "打开终端渲染预览",
+        "category": "Terminal Style UI",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "terminalStyleUi.openPreviewToSide",
+        "title": "在侧边打开终端渲染预览",
+        "category": "Terminal Style UI",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "terminalStyleUi.showSource",
+        "title": "显示源文件",
+        "category": "Terminal Style UI",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "terminalStyleUi.treatAsMarkdown",
+        "title": "将此后缀识别为 Markdown",
+        "category": "Terminal Style UI"
+      },
+      {
+        "command": "terminalStyleUi.exportHtml",
+        "title": "导出为 HTML",
+        "category": "Terminal Style UI"
+      },
+      {
+        "command": "terminalStyleUi.exportPdf",
+        "title": "导出为 PDF",
+        "category": "Terminal Style UI"
+      },
+      {
+        "command": "terminalStyleUi.themeLight",
+        "title": "切换到浅色",
+        "category": "Terminal Style UI",
+        "icon": {
+          "light": "media/sun-light.svg",
+          "dark": "media/sun-dark.svg"
+        }
+      },
+      {
+        "command": "terminalStyleUi.themeDark",
+        "title": "切换到深色",
+        "category": "Terminal Style UI",
+        "icon": {
+          "light": "media/moon-light.svg",
+          "dark": "media/moon-dark.svg"
+        }
+      },
+      {
+        "command": "terminalStyleUi.zoomIn",
+        "title": "放大字号",
+        "category": "Terminal Style UI"
+      },
+      {
+        "command": "terminalStyleUi.zoomOut",
+        "title": "缩小字号",
+        "category": "Terminal Style UI"
+      },
+      {
+        "command": "terminalStyleUi.zoomReset",
+        "title": "重置字号",
+        "category": "Terminal Style UI"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "terminalStyleUi.zoomIn",
+        "key": "ctrl+=",
+        "mac": "cmd+=",
+        "when": "activeWebviewPanelId == 'terminalStyleUi.preview' || activeCustomEditorId == 'terminalStyleUi.viewer'"
+      },
+      {
+        "command": "terminalStyleUi.zoomOut",
+        "key": "ctrl+-",
+        "mac": "cmd+-",
+        "when": "activeWebviewPanelId == 'terminalStyleUi.preview' || activeCustomEditorId == 'terminalStyleUi.viewer'"
+      },
+      {
+        "command": "terminalStyleUi.zoomReset",
+        "key": "ctrl+0",
+        "mac": "cmd+0",
+        "when": "activeWebviewPanelId == 'terminalStyleUi.preview' || activeCustomEditorId == 'terminalStyleUi.viewer'"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "terminalStyleUi.openPreviewToSide",
+          "when": "(resourceScheme == file || resourceScheme == untitled || resourceScheme == vscode-remote) && !activeCustomEditorId",
+          "group": "navigation"
+        },
+        {
+          "command": "terminalStyleUi.showSource",
+          "when": "activeCustomEditorId == terminalStyleUi.viewer",
+          "group": "navigation"
+        },
+        {
+          "command": "terminalStyleUi.themeLight",
+          "when": "(activeWebviewPanelId == 'terminalStyleUi.preview' || activeCustomEditorId == 'terminalStyleUi.viewer') && terminalStyleUi.theme != light",
+          "group": "navigation"
+        },
+        {
+          "command": "terminalStyleUi.themeDark",
+          "when": "(activeWebviewPanelId == 'terminalStyleUi.preview' || activeCustomEditorId == 'terminalStyleUi.viewer') && terminalStyleUi.theme == light",
+          "group": "navigation"
+        },
+        {
+          "command": "terminalStyleUi.exportHtml",
+          "when": "activeWebviewPanelId == 'terminalStyleUi.preview' || activeCustomEditorId == 'terminalStyleUi.viewer' || (resourceScheme == file || resourceScheme == untitled || resourceScheme == vscode-remote) && !activeCustomEditorId",
+          "group": "9_terminalStyle@1"
+        },
+        {
+          "command": "terminalStyleUi.exportPdf",
+          "when": "activeWebviewPanelId == 'terminalStyleUi.preview' || activeCustomEditorId == 'terminalStyleUi.viewer' || (resourceScheme == file || resourceScheme == untitled || resourceScheme == vscode-remote) && !activeCustomEditorId",
+          "group": "9_terminalStyle@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "terminalStyleUi.openPreview",
+          "when": "!explorerResourceIsFolder",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "terminalStyleUi.showSource",
+          "when": "false"
+        },
+        {
+          "command": "terminalStyleUi.treatAsMarkdown",
+          "when": "resourceScheme && resourceLangId != markdown"
+        },
+        {
+          "command": "terminalStyleUi.exportHtml",
+          "when": "resourceScheme || activeWebviewPanelId == 'terminalStyleUi.preview' || activeCustomEditorId == 'terminalStyleUi.viewer'"
+        },
+        {
+          "command": "terminalStyleUi.exportPdf",
+          "when": "resourceScheme || activeWebviewPanelId == 'terminalStyleUi.preview' || activeCustomEditorId == 'terminalStyleUi.viewer'"
+        },
+        {
+          "command": "terminalStyleUi.themeLight",
+          "when": "terminalStyleUi.theme != light"
+        },
+        {
+          "command": "terminalStyleUi.themeDark",
+          "when": "terminalStyleUi.theme == light"
+        },
+        {
+          "command": "terminalStyleUi.zoomIn",
+          "when": "activeWebviewPanelId == 'terminalStyleUi.preview' || activeCustomEditorId == 'terminalStyleUi.viewer'"
+        },
+        {
+          "command": "terminalStyleUi.zoomOut",
+          "when": "activeWebviewPanelId == 'terminalStyleUi.preview' || activeCustomEditorId == 'terminalStyleUi.viewer'"
+        },
+        {
+          "command": "terminalStyleUi.zoomReset",
+          "when": "activeWebviewPanelId == 'terminalStyleUi.preview' || activeCustomEditorId == 'terminalStyleUi.viewer'"
+        }
+      ]
+    },
+    "customEditors": [
+      {
+        "viewType": "terminalStyleUi.viewer",
+        "displayName": "终端风格渲染",
+        "selector": [
+          {
+            "filenamePattern": "*"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "configuration": {
+      "title": "Terminal Style UI",
+      "properties": {
+        "terminalStyleUi.theme": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "dark",
+            "light"
+          ],
+          "enumDescriptions": [
+            "跟随 VSCode 颜色主题",
+            "黑底（iTerm Dark Background）",
+            "白底（TUI light）"
+          ],
+          "default": "auto",
+          "markdownDescription": "渲染主题。"
+        },
+        "terminalStyleUi.fontSize": {
+          "type": "number",
+          "default": 13,
+          "minimum": 6,
+          "maximum": 48,
+          "markdownDescription": "字号（px），默认 13 与 iTerm 实测对齐。预览里 ⌘+ / ⌘- / ⌘0 或触控板捏合（⌘+滚轮）缩放，会写回这里。"
+        },
+        "terminalStyleUi.width": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "markdownDescription": "渲染列数。`0` = 按面板宽度自动计算（与终端按窗口宽度排版一致）。"
+        },
+        "terminalStyleUi.scrollSync": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "编辑器与预览双向联动滚动（双击预览跳到对应源码行）。"
+        },
+        "terminalStyleUi.chromePath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "导出 PDF 用的 Chromium 系浏览器可执行文件。留空 = 自动查找 Chrome / Edge / Chromium / Brave。"
+        },
+        "terminalStyleUi.libraryPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "`terminal-style-ui-web` 渲染库目录（开发调试用）。留空 = 插件自带的渲染库。"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "test": "node test/run.js",
+    "package": "node scripts/bundle-lib.mjs && npx --yes @vscode/vsce package --no-dependencies --baseContentUrl https://github.com/ApolloZhangOnGithub/terminal-style-ui/blob/main/terminal-style-ui-vscode --baseImagesUrl https://github.com/ApolloZhangOnGithub/terminal-style-ui/raw/main/terminal-style-ui-vscode"
+  },
+  "keywords": [
+    "markdown",
+    "preview",
+    "terminal",
+    "tui",
+    "claude code",
+    "monokai",
+    "dark",
+    "light",
+    "cjk",
+    "chinese",
+    "code preview",
+    "export pdf"
+  ],
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#000000",
+    "theme": "dark"
+  }
+}

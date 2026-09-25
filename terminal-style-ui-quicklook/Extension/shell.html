@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<!-- shell.html —— Quick Look 预览页（2026-09-25 Claude Code）：扩展把文件内容交给 tmdStart，页面里按窗口宽度流式渲染 -->
+<html><head><meta charset="utf-8">
+<!-- 主题在加载时就定下（扩展在页面脚本前注入 window.__tmdTheme），第一次绘制前生效：浅色模式不会先闪一下黑底 -->
+<script>if (window.__tmdTheme === "light") document.documentElement.className = "light";</script>
+<link rel="stylesheet" href="terminal.css">
+<style>
+  html, body { margin: 0; background: #000; }
+  html.light, html.light body { background: #fff; }
+  /* 字号同 Apple 自带的文本预览（系统等宽字体 Menlo 11pt） */
+  pre.terminal-style-ui { margin: 0; padding: 1lh 12px; --ttu-font-size: 11px; box-sizing: border-box; min-height: 100vh; }
+  .ttu-note { font: 11px -apple-system, sans-serif; color: #888; padding: 8px 12px 0; }
+  #probe { position: absolute; visibility: hidden; white-space: pre; }
+  /* 同终端 / VSCode 插件：不显示滚动条 */
+  html { scrollbar-width: none; }
+  html::-webkit-scrollbar { display: none; }
+</style></head>
+<body><div class="ttu-note" id="note" hidden></div><pre class="terminal-style-ui" id="out"></pre>
+<script>if (document.documentElement.className === "light") document.getElementById("out").className += " ttu-light";</script>
+<script src="ttu-core.js"></script>
+<script>
+(function () {
+  var out = document.getElementById("out");
+  var file = null, generation = 0, lastWidth = 0;
+  var post = function (msg) { try { webkit.messageHandlers.tmd.postMessage(msg); } catch (e) {} };
+
+  // 列数 = 可用宽度 ÷ 1ch（100 个 0 的平均宽度，与 VSCode 插件同法）
+  function columns() {
+    var probe = document.createElement("span");
+    probe.id = "probe";
+    probe.textContent = "0".repeat(100);
+    out.appendChild(probe);
+    var ch = probe.getBoundingClientRect().width / 100;
+    probe.remove();
+    var style = getComputedStyle(out);
+    var avail = out.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    return Math.max(40, Math.floor(avail / ch));
+  }
+
+  function render() {
+    var gen = ++generation;
+    var width = columns();
+    lastWidth = width;
+    var r = TTU.createFileRenderer(file.name, file.text, { width: width, theme: file.theme, chunkLines: 300 });
+    if (r.detected.kind === "binary") { post("binary"); return; }
+    var first = r.next();
+    out.innerHTML = first == null ? "" : first;
+    post("first");
+    // 其余分块：每帧最多占 12ms，滚动 / 缩放不卡
+    function pump() {
+      if (gen !== generation) return;
+      var t = performance.now(), html;
+      while ((html = r.next()) !== null) {
+        out.insertAdjacentHTML("beforeend", "\n" + html);
+        if (performance.now() - t > 12) break;
+      }
+      if (html !== null) setTimeout(pump, 0);
+    }
+    setTimeout(pump, 0);
+  }
+
+  window.tmdStart = function (name, text, theme, note) {
+    file = { name: name, text: text, theme: theme };
+    document.documentElement.className = theme === "light" ? "light" : "";
+    out.className = "terminal-style-ui" + (theme === "light" ? " ttu-light" : "");
+    var noteEl = document.getElementById("note");
+    if (note) { noteEl.textContent = note; noteEl.hidden = false; }
+    render();
+  };
+
+  // 整行滚动（同 VSCode 插件 / Claude Code）：滚动位置 = 页顶 0，或「视口底边落在行边界上」的位置（最底一行完整）；
+  // 滚轮 / 触控板的滚动量累积满一行才走一行，反向立即响应；其他方式停下后吸附到整行。
+  // 键盘不接管：访达快速查看里空格是关闭、方向键是换文件
+  var rowHeight = function () { return parseFloat(getComputedStyle(out).lineHeight) || 14; };
+  var origin = function () { return out.offsetTop + parseFloat(getComputedStyle(out).paddingTop); };
+  var maxY = function () { return Math.max(0, document.documentElement.scrollHeight - window.innerHeight); };
+  var gridStart = function () { // 页顶之后第一个底边对齐格点：离页顶至少半行
+    var h = rowHeight(), view = window.innerHeight, o = origin();
+    return o - view + Math.ceil((view - o + h / 2) / h) * h;
+  };
+  var gridIndex = function (y) { var st = gridStart(); return y < st / 2 ? 0 : 1 + Math.max(0, Math.round((y - st) / rowHeight())); };
+  var gridY = function (i) { return Math.min(maxY(), i <= 0 ? 0 : gridStart() + (i - 1) * rowHeight()); };
+  var jump = function (y) { window.scrollTo({ top: y, behavior: "instant" }); };
+  var wheelAcc = 0;
+  window.addEventListener("wheel", function (e) {
+    if (e.ctrlKey || e.metaKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // 缩放 / 横向交给系统
+    e.preventDefault();
+    var h = rowHeight();
+    var px = e.deltaMode === 1 ? e.deltaY * h : e.deltaMode === 2 ? e.deltaY * window.innerHeight : e.deltaY;
+    if (Math.sign(px) !== Math.sign(wheelAcc)) wheelAcc = 0;
+    wheelAcc += px;
+    var rows = Math.trunc(wheelAcc / h);
+    if (!rows) return;
+    wheelAcc -= rows * h;
+    jump(gridY(gridIndex(window.scrollY) + rows));
+  }, { passive: false });
+  window.addEventListener("scrollend", function () {
+    var y = gridY(gridIndex(window.scrollY));
+    if (Math.abs(y - window.scrollY) > 0.5) jump(y);
+  });
+
+  // 窗口变宽窄：列数变了才重排（同终端）
+  var timer = 0;
+  window.addEventListener("resize", function () {
+    clearTimeout(timer);
+    timer = setTimeout(function () { if (file && columns() !== lastWidth) render(); }, 120);
+  });
+})();
+</script></body></html>

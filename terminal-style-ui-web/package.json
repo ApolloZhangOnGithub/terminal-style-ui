@@ -1,0 +1,52 @@
+{
+  "name": "@apollozhangongithub/terminal-style-ui",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "终端风格渲染：Markdown / 任意文件 → 终端 TUI 同款 ANSI → 格子化 HTML；附命令行 tmd",
+  "main": "index.js",
+  "bin": {
+    "tmd": "bin/tmd.mjs"
+  },
+  "scripts": {
+    "build": "node scripts/build-core.mjs",
+    "build:core": "node scripts/build-core.mjs",
+    "prepack": "node scripts/build-core.mjs"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  },
+  "files": [
+    "index.js",
+    "core.js",
+    "ansi-to-html.js",
+    "highlight-themes.js",
+    "terminal.css",
+    "bin/tmd.mjs",
+    "dist/runtime.mjs",
+    "dist/themes/",
+    "dist/ttu-core.js",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ApolloZhangOnGithub/terminal-style-ui.git",
+    "directory": "terminal-style-ui-web"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "markdown",
+    "terminal",
+    "tui",
+    "ansi",
+    "preview",
+    "cli",
+    "claude-code",
+    "syntax-highlight"
+  ]
+}
