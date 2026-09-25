@@ -181,3 +181,7 @@ html.light #menubar { text-shadow: 0 0 6px rgba(255, 255, 255, 0.6); }
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0)); filter: blur(2px); opacity: 0.8; }
 html.refract #dock::before { backdrop-filter: url(#lg) blur(2px) saturate(1.9) brightness(1.08); }
 #dock { isolation: isolate; }
+/* 输入栏的预览灰字：指针移到输入栏上时亮起来（app.js 给预览用了专属的灰） */
+#foot [style*="rgb(121,121,122)"], #foot [style*="rgb(131,131,130)"] { transition: color 0.15s; }
+#foot:hover [style*="rgb(121,121,122)"] { color: #d6d6d6 !important; }
+#foot:hover [style*="rgb(131,131,130)"] { color: #2a2a2a !important; }

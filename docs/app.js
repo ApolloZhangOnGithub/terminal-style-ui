@@ -167,14 +167,17 @@
     statusEl.innerHTML = join(r.flush().rows);
   }
   // ---- 输入栏（固定在底部）：上下各一条灰线，上线右侧带会话名（同 Claude Code）----
+  // 输入栏里的预览（还没“打”出来的灰字）用一个专属的灰：app.css 按它在 hover 时把预览提亮，表示可以点
+  var PH = "";
   function renderInput() {
+    PH = rgb(theme === "light" ? "131;131;130" : "121;121;122");
     var q = asked < TURNS.length ? TURNS[asked].ask : "";
     // 回答中输入栏照样是下一个问题，可以接着打；排队后输入栏清空
     var text = queued || !q ? DIM + (q ? "" : "问完了，谢谢你读到这里 ✻") + RESET : "";
     var left = typed, shown = queued || !q ? [text] : wrap(q, cols - 2).map(function (l) {
       var n = Math.max(0, Math.min(l.length, left)); // 打字进度按字数切到各行
       left -= l.length;
-      return l.slice(0, n) + DIM + l.slice(n) + RESET;
+      return l.slice(0, n) + PH + l.slice(n) + RESET;
     });
     // 输入栏的两条横线撑满窗口左右（#foot 不留边，列数按整个窗口宽算）；❯ 那一行与对话正文同列缩进
     var fcols = Math.max(24, Math.floor(foot.clientWidth / chPx)), indent = " ".repeat(Math.round(padL / chPx));
