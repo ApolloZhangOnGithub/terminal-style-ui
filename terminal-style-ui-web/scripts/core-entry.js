@@ -31,3 +31,9 @@ export function createFileRenderer(name, text, options = {}) {
     },
   };
 }
+
+// Markdown → ANSI 行（网页里自己拼装再转 HTML 用，如 docs/ 博客页按窗口宽度现场排版）
+export function markdownLines(markdown, options = {}) {
+  return core.renderLines(mods, markdown, { paddingX: 0, ...options }).lines;
+}
+export { ansiToHtml, visibleWidth };
