@@ -40,7 +40,7 @@
 <img src="https://raw.githubusercontent.com/ApolloZhangOnGithub/terminal-style-ui/main/media/ql-demo-md-light.png" width="49%" alt="Quick Look light">
 </p>
 
-## 终端
+## 终端：Command "cmd"
 
 <p>
 <img src="https://raw.githubusercontent.com/ApolloZhangOnGithub/terminal-style-ui/main/media/tmd-dark.png" width="49%" alt="tmd dark">
