@@ -47,15 +47,6 @@
 <img src="https://raw.githubusercontent.com/ApolloZhangOnGithub/terminal-style-ui/main/media/tmd-light.png" width="49%" alt="tmd light">
 </p>
 
-## 任意文件
-
-后缀只是证据之一，内容说了算：没后缀的脚本看 `#!`，`.txt` 里是 JSON 就按 JSON，`.WIKI` 里满是 Markdown 语法就按 Markdown。代码同 Claude Code 的 Write 输出——灰色行号、不画竖线。
-
-<p>
-<img src="https://raw.githubusercontent.com/ApolloZhangOnGithub/terminal-style-ui/main/media/lib-demo-py-dark.png" width="49%" alt="code dark">
-<img src="https://raw.githubusercontent.com/ApolloZhangOnGithub/terminal-style-ui/main/media/lib-demo-py-light.png" width="49%" alt="code light">
-</p>
-
 ## 安装
 
 | 用处 | 安装 |
