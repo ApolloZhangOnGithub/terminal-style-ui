@@ -2,6 +2,7 @@
 
 ## 未发布
 
+- Linux 快速查看（`terminal-style-ui-nautilus/`）：GNOME「文件」（Nautilus）里选中文件按空格预览，与 Mac 快速查看共用 `shell.html` + `ttu-core.js`，输出一致；Python + GTK3 + WebKitGTK，预览时不需要 Node。实现 Sushi 的 D-Bus 接口 `org.gnome.NautilusPreviewer2`（Nautilus 50 按 `(ssbs)` 调 `ShowFile`，带 xdg-activation 令牌；`Visible` / `ParentHandle` 属性、方向键发 `SelectionEvent` 换文件），也认旧版 v1（Ubuntu 桌面图标用它）。字体、字号跟随系统等宽字体，深浅色跟随系统；窗口在屏幕正中（屏幕的 60% × 80%），显示后再挂到 Nautilus 窗口上、始终在它上面；图片直接显示，文件夹 / 二进制显示信息卡片。`./install.sh` 装到 `~/.local/share` 并登记 D-Bus 服务。
 - 渲染核心公开：定制版 pi-tui / pi-coding-agent 的源码（打包用到的文件）放进 `terminal-style-ui-web/upstream/`，第三方依赖锁定版本；构建完全由仓库复现，CI 每次重新生成 `vendor/` 并与提交比对。去掉重复打包的依赖后，Node / JavaScriptCore 两个包各小约 1 MB，渲染结果不变（仓库 55 个文件深浅两套逐字节比对）。
 - 大文本测试改为确定性检查（统计自动识别的调用次数），不受机器负载影响。
 - 上下还有多少行的提示：tmd 全屏写在输入框上边框右侧（如 `↑ 12 行 · ↓ 42 行`，不占正文）；VSCode 预览与 Quick Look 滚动时右上 / 右下角显示，停下 1.2 秒后淡出。
