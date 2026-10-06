@@ -3,6 +3,7 @@ node_modules/
 dist/
 build/
 *.vsix
+__pycache__/
 .DS_Store
 lib/
 # upstream/ 是定制版 pi-tui 的源码（按原包结构，文件在 dist/、node_modules/ 下）：要提交
